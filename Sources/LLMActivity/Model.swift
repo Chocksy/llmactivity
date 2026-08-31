@@ -22,6 +22,7 @@ enum ProviderError: Error, CustomStringConvertible {
     case notInstalled
     case auth(String)          // missing / expired credential; message tells the user what to do
     case http(Int)
+    case rateLimited(retryAfter: TimeInterval?)  // HTTP 429; seconds from the Retry-After header, if it sent one
     case unexpected(String)    // response did not have the fields we parse
 
     var description: String {
@@ -30,8 +31,8 @@ enum ProviderError: Error, CustomStringConvertible {
         case .auth(let m): return m
         case .http(let code):
             if code == 401 || code == 403 { return "Token expired, open the tool once" }
-            if code == 429 { return "Rate limited, retrying later" }
             return "HTTP \(code)"
+        case .rateLimited: return "Rate limited, retrying later"
         case .unexpected(let m): return "Unexpected response: \(m)"
         }
     }

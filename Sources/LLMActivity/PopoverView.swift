@@ -44,7 +44,7 @@ struct PopoverView: View {
             Toggle("Monochrome icons", isOn: $settings.monochrome).toggleStyle(.switch).controlSize(.small)
             Toggle("Desktop widget", isOn: $settings.showWidget).toggleStyle(.switch).controlSize(.small)
             HStack(spacing: 8) {
-                Button(poller.isRefreshing ? "Refreshing…" : "Refresh") { Task { await poller.refresh() } }
+                Button(poller.isRefreshing ? "Refreshing…" : "Refresh") { Task { await poller.refresh(force: true) } }
                     .disabled(poller.isRefreshing)
                 Button("Quit") { NSApp.terminate(nil) }
             }

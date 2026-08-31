@@ -38,6 +38,14 @@ enum Provider: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Anthropic's usage endpoint 429s after a few calls per minute; hold Claude to one call per 5 min.
+    var minPollInterval: TimeInterval {
+        switch self {
+        case .claude: return 300
+        case .codex, .cursor: return 60
+        }
+    }
+
     // MARK: Fetch
 
     func fetch(session: URLSession) async throws -> [UsageLimit] {
@@ -61,7 +69,13 @@ enum Provider: String, CaseIterable, Identifiable {
         }
         req.setValue("llmactivity", forHTTPHeaderField: "User-Agent")
         let (data, resp) = try await session.data(for: req)
-        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        let http = resp as? HTTPURLResponse
+        let code = http?.statusCode ?? 0
+        if code == 429 {
+            let secs = http?.value(forHTTPHeaderField: "Retry-After")
+                .flatMap { Int($0) }.flatMap { $0 > 0 ? TimeInterval($0) : nil }
+            throw ProviderError.rateLimited(retryAfter: secs)
+        }
         guard (200..<300).contains(code) else { throw ProviderError.http(code) }
         switch self {
         case .claude: return try Self.parseClaude(data)

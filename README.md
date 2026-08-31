@@ -27,7 +27,7 @@ Not notarized: on first launch right-click → Open, or `xattr -cr /Applications
 
 ## Settings
 
-In the popover: **Monochrome icons** (template images, like the system icons) and **Desktop widget**. Poll interval: `defaults write com.chocksy.llmactivity pollInterval 30` (seconds, min 15).
+In the popover: **Monochrome icons** (template images, like the system icons) and **Desktop widget**. Poll interval: `defaults write com.chocksy.llmactivity pollInterval 30` (seconds, min 15). Claude is polled at most every 5 minutes (Anthropic rate-limits its usage endpoint); Codex and Cursor every `pollInterval` seconds.
 
 ## Known limits
 

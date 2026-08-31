@@ -39,15 +39,20 @@ final class Poller: ObservableObject {
         Task { await refresh() }
     }
 
-    func refresh() async {
+    func refresh(force: Bool = false) async {
         guard !isRefreshing else { return }
         isRefreshing = true
         defer { isRefreshing = false }
-        // ponytail: fixed 5 min backoff after a 429; honoring the Retry-After header is the upgrade path.
+        // ponytail: fixed 5 min backoff after a 429 when the response carries no Retry-After.
         let now = Date()
-        let providers = usages.map(\.provider)
-            .filter { settings.isEnabled($0) }
-            .filter { (retryAfter[$0].map { $0 <= now }) ?? true }
+        let providers = usages
+            .filter { settings.isEnabled($0.provider) }
+            .filter { (retryAfter[$0.provider].map { $0 <= now }) ?? true }
+            .filter { u in
+                guard !force, let at = u.fetchedAt else { return true }
+                return now.timeIntervalSince(at) >= u.provider.minPollInterval
+            }
+            .map(\.provider)
         guard !providers.isEmpty else { return }   // all backing off: keep the last state and timestamp
         let session = self.session
         // One task per provider. The payload is a struct, not the tuple the plan
@@ -77,8 +82,8 @@ final class Poller: ObservableObject {
             case .failure(let e):
                 usages[i].error = (e as? ProviderError)?.description
                     ?? ((e as? URLError) != nil ? "Offline" : e.localizedDescription)
-                if case .http(429)? = e as? ProviderError {
-                    retryAfter[p] = Date().addingTimeInterval(300)
+                if case .rateLimited(let secs)? = e as? ProviderError {
+                    retryAfter[p] = Date().addingTimeInterval(secs ?? 300)
                 }
             }
         }
