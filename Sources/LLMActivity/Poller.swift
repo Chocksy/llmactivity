@@ -41,18 +41,23 @@ final class Poller: ObservableObject {
         defer { isRefreshing = false }
         let providers = usages.map(\.provider)
         let session = self.session
-        let results: [(Provider, Result<[UsageLimit], Error>)] = await withTaskGroup(of: (Provider, Result<[UsageLimit], Error>).self) { group in
+        // One task per provider. The payload is a struct, not the tuple the plan
+        // used: with Swift 6.3.3 in release (-O) the tuple's Provider field came
+        // back zeroed, so every result was tagged .claude and the rows got mixed.
+        struct Fetched { let provider: Provider; let result: Result<[UsageLimit], Error> }
+        let results: [Fetched] = await withTaskGroup(of: Fetched.self) { group in
             for p in providers {
                 group.addTask {
-                    do { return (p, .success(try await p.fetch(session: session))) }
-                    catch { return (p, .failure(error)) }
+                    do { return Fetched(provider: p, result: .success(try await p.fetch(session: session))) }
+                    catch { return Fetched(provider: p, result: .failure(error)) }
                 }
             }
-            var out: [(Provider, Result<[UsageLimit], Error>)] = []
+            var out: [Fetched] = []
             for await r in group { out.append(r) }
             return out
         }
-        for (p, r) in results {
+        for f in results {
+            let (p, r) = (f.provider, f.result)
             guard let i = usages.firstIndex(where: { $0.provider == p }) else { continue }
             switch r {
             case .success(let limits):
