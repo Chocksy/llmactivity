@@ -56,27 +56,4 @@ struct RingStack: View {
         img.isTemplate = monochrome
         return img
     }
-
-    /// Menu bar image with the tool name stacked above a small ring, for
-    /// monochrome mode where the rings alone are indistinguishable. Narrower
-    /// than name-beside-ring: the width follows the text, about 30 pt.
-    @MainActor
-    static func stackedImage(color: NSColor, percents: [Double], label: String, monochrome: Bool) -> NSImage {
-        let ring: CGFloat = 12
-        let n = max(percents.count, 1)
-        let lw = (ring / 2 - 0.5) / (CGFloat(n) + 0.35 * CGFloat(n - 1))
-        let view = VStack(spacing: 1) {
-            Text(label)
-                .font(.system(size: 7.5, weight: .semibold))
-                .foregroundStyle(monochrome ? Color.black : Color(nsColor: color))
-            RingStack(color: color, percents: percents, lineWidth: lw, gap: lw * 0.35, monochrome: monochrome)
-                .frame(width: ring, height: ring)
-        }
-        .frame(height: 22)
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = 2
-        guard let img = renderer.nsImage else { return image(color: color, percents: percents, size: 18, monochrome: monochrome) }
-        img.isTemplate = monochrome
-        return img
-    }
 }

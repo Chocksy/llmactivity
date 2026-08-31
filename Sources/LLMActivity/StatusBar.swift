@@ -69,15 +69,10 @@ final class StatusBarController: NSObject {
         for u in usages {
             guard let item = items[u.provider], let button = item.button else { continue }
             let percents = u.limits.isEmpty ? [0.0] : u.limits.map(\.percent)
-            // Monochrome rings all look alike, so stack the tool name over a smaller ring.
-            if monochrome {
-                item.length = NSStatusItem.variableLength
-                button.image = RingStack.stackedImage(color: u.provider.color, percents: percents,
-                                                      label: u.provider.shortName, monochrome: true)
-            } else {
-                item.length = 22
-                button.image = RingStack.image(color: u.provider.color, percents: percents, size: 18, monochrome: false)
-            }
+            item.length = 22
+            // Monochrome only flips the image to a template, so macOS tints the
+            // ring like the system icons instead of keeping the provider color.
+            button.image = RingStack.image(color: u.provider.color, percents: percents, size: 18, monochrome: monochrome)
             button.imagePosition = .imageOnly
             button.attributedTitle = NSAttributedString(string: "")
             button.appearsDisabled = u.isStale
