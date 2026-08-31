@@ -48,10 +48,22 @@ final class StatusBarController: NSObject {
 
     private func render(_ usages: [ProviderUsage], monochrome: Bool) {
         for u in usages {
-            guard let button = items[u.provider]?.button else { continue }
+            guard let item = items[u.provider], let button = item.button else { continue }
             let percents = u.limits.isEmpty ? [0.0] : u.limits.map(\.percent)
             button.image = RingStack.image(color: u.provider.color, percents: percents, size: 18, monochrome: monochrome)
             button.appearsDisabled = u.isStale
+            // Monochrome rings all look alike, so name the tool next to each one.
+            if monochrome {
+                item.length = NSStatusItem.variableLength
+                button.imagePosition = .imageLeading
+                button.attributedTitle = NSAttributedString(
+                    string: u.provider.shortName,
+                    attributes: [.font: NSFont.systemFont(ofSize: 11, weight: .medium), .baselineOffset: 1])
+            } else {
+                item.length = 22
+                button.imagePosition = .imageOnly
+                button.attributedTitle = NSAttributedString(string: "")
+            }
         }
     }
 
