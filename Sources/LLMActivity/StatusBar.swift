@@ -11,6 +11,9 @@ final class StatusBarController: NSObject {
     private let popover = NSPopover()
     private let hosting: NSHostingController<PopoverView>
     private var cancellables = Set<AnyCancellable>()
+    /// The provider whose button the popover is anchored to, so hiding *that*
+    /// item can close it while hiding any other one leaves it open.
+    private var anchorProvider: Provider?
 
     init(poller: Poller, settings: Settings) {
         self.poller = poller
@@ -27,6 +30,17 @@ final class StatusBarController: NSObject {
         popover.animates = true
         popover.contentViewController = hosting
 
+        // Every installed provider gets its item once, for the life of the app.
+        // Order left→right on the bar = reverse insertion (menu bar grows leftwards).
+        for usage in poller.usages.reversed() {
+            let item = NSStatusBar.system.statusItem(withLength: 22)
+            item.button?.target = self
+            item.button?.action = #selector(togglePopover(_:))
+            item.button?.imagePosition = .imageOnly
+            item.button?.toolTip = usage.provider.name
+            items[usage.provider] = item
+        }
+
         // Re-render the (max three) 18 pt images only when data or the
         // monochrome setting changes. Nothing runs between polls.
         poller.$usages
@@ -35,30 +49,19 @@ final class StatusBarController: NSObject {
             .sink { [weak self] usages, mono in self?.render(usages, monochrome: mono) }
             .store(in: &cancellables)
 
-        // Hiding a provider removes its item; re-enabling puts it back in the
-        // Claude, Codex, Cursor order. Emits the current value on subscribe, so
-        // this also builds the items at launch.
+        // Hiding a provider only flips its item's visibility, so the popover the
+        // checkbox lives in survives the toggle. Emits the current value on
+        // subscribe, so this also applies the saved state at launch.
         settings.$disabled
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] disabled in self?.rebuildItems(disabled: disabled) }
+            .sink { [weak self] disabled in self?.applyVisibility(disabled) }
             .store(in: &cancellables)
     }
 
-    /// Rebuild every status item from scratch. Cheap (max three) and it keeps
-    /// the left→right order without tracking insertion positions.
-    private func rebuildItems(disabled: Set<Provider>) {
-        if popover.isShown { popover.performClose(nil) }
-        for item in items.values { NSStatusBar.system.removeStatusItem(item) }
-        items.removeAll()
-        // Order left→right on the bar = reverse insertion (menu bar grows leftwards).
-        for usage in poller.usages.reversed() where !disabled.contains(usage.provider) {
-            let item = NSStatusBar.system.statusItem(withLength: 22)
-            item.button?.target = self
-            item.button?.action = #selector(togglePopover(_:))
-            item.button?.imagePosition = .imageOnly
-            item.button?.toolTip = usage.provider.name
-            items[usage.provider] = item
-        }
+    private func applyVisibility(_ disabled: Set<Provider>) {
+        for (provider, item) in items { item.isVisible = !disabled.contains(provider) }
+        // The popover has nothing left to hang from once its own item is gone.
+        if let anchor = anchorProvider, disabled.contains(anchor) { popover.performClose(nil) }
         render(poller.usages, monochrome: settings.monochrome)
     }
 
@@ -81,9 +84,9 @@ final class StatusBarController: NSObject {
         }
     }
 
-    /// `--show-popover`: the same code path as a click on the first status item.
+    /// `--show-popover`: the same code path as a click on the first visible status item.
     func showPopover() {
-        guard let provider = poller.usages.map(\.provider).first(where: { items[$0] != nil }),
+        guard let provider = poller.usages.map(\.provider).first(where: { items[$0]?.isVisible == true }),
               let button = items[provider]?.button else { return }
         togglePopover(button)
     }
@@ -92,6 +95,7 @@ final class StatusBarController: NSObject {
         if popover.isShown {
             popover.performClose(sender)
         } else {
+            anchorProvider = items.first(where: { $0.value.button === sender })?.key
             NSApp.activate(ignoringOtherApps: true)   // transient popover needs the app active to dismiss on outside click
             // Size the popover before it opens, so it hangs below the menu bar
             // instead of growing upward once the content lays out.
