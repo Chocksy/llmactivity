@@ -159,8 +159,8 @@ func runParseCheck() -> Int32 {
             ("5h session", 48, "2026-08-31T15:49:59Z"),
         ])
         check("codex", try Provider.parseCodex(Data(Fixtures.codex.utf8)), [
-            ("5h session", 62, "2026-08-31T18:08:24Z"),
             ("Weekly", 38, "2026-09-07T13:08:24Z"),
+            ("5h session", 62, "2026-08-31T18:08:24Z"),
         ])
         check("cursor", try Provider.parseCursor(Data(Fixtures.cursor.utf8)), [
             ("API models", 71, "2026-09-22T08:37:25Z"),

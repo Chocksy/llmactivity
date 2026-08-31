@@ -1,0 +1,71 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>llmactivity — ring colors v2</title>
+<style>
+ body{margin:0;background:#0d0d0f;color:#f2f2f4;font:14px/1.4 -apple-system,system-ui,sans-serif;padding:40px}
+ h1{font-size:20px;margin:0 0 4px} .sub{color:#9a9aa1;margin-bottom:26px;max-width:860px}
+ h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#9a9aa1;margin:30px 0 10px}
+ .ring{fill:none;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
+ .row{display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start}
+ .card{background:#1c1c1e;border:1px solid #3a3a3e;border-radius:18px;padding:18px 22px;width:390px}
+ .prov{display:grid;grid-template-columns:112px 1fr;gap:16px;align-items:center;padding:10px 0;border-top:1px solid #3a3a3e}
+ .prov:first-child{border-top:0}
+ .name{font-weight:700;font-size:15px;margin-bottom:3px}
+ .lim{display:grid;grid-template-columns:1fr auto;font-size:12px;color:#9a9aa1;padding:2px 0;gap:8px}
+ .lim b{color:#f2f2f4;font-size:13px} .sw{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle}
+ .menubar{background:#151517;border:1px solid #3a3a3e;border-radius:10px;height:28px;display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 12px;width:340px;color:#ddd;font-size:12px;margin-bottom:8px}
+ .warn{display:flex;gap:28px;align-items:center} .warn .c{text-align:center;color:#9a9aa1;font-size:12px}
+</style></head><body>
+<h1>llmactivity — distinct ring colors + limit warning</h1>
+<div class="sub">Each tool keeps its brand family, but every ring gets its own tone (dot in the legend matches the ring). Clock order everywhere: slow budget outside, fast window inside (Codex flipped: Weekly now outer). Above 80% a ring blends toward red, full red at 100%.</div>
+
+<h2>Menu bar + popover</h2>
+<div class="menubar"><span id="mb"></span><span>65%</span><span>Mon 17:20</span></div>
+<div class="row">
+<div class="card" id="pop"></div>
+<div>
+<h2 style="margin-top:0">Warning ramp (Claude coral shown at 52 / 82 / 96 / 100%)</h2>
+<div class="warn" id="warn"></div>
+<h2>Same data, current single-hue version for comparison</h2>
+<div class="card" style="width:340px" id="old"></div>
+</div>
+</div>
+<script>
+const NS='http://www.w3.org/2000/svg';
+function lerp(a,b,t){return a+(b-a)*t}
+function hex(c){const n=parseInt(c.slice(1),16);return[n>>16,n>>8&255,n&255]}
+function rgb(c){return`rgb(${c.map(Math.round).join(',')})`}
+const RED=hex('#ff453a');
+function warnColor(base,pct){ if(pct<80)return rgb(base); const t=Math.min((pct-80)/20,1); return rgb(base.map((v,i)=>lerp(v,RED[i],0.75*t))) }
+// Slow -> fast, outer -> inner
+const P=[
+ {name:'Claude Code',brand:'#e8845c',rings:[
+   {label:'Weekly',pct:19,reset:'resets in 6d',color:'#e8845c'},
+   {label:'Fable weekly',pct:17,reset:'resets in 6d',color:'#ecc06f'},
+   {label:'5h session',pct:52,reset:'resets in 16m',color:'#f7e2c0'}]},
+ {name:'Codex',brand:'#34d399',rings:[
+   {label:'Weekly',pct:38,reset:'resets in 6d',color:'#34d399'},
+   {label:'5h session',pct:62,reset:'resets in 4h 59m',color:'#b8e986'}]},
+ {name:'Cursor',brand:'#a78bfa',rings:[
+   {label:'API models',pct:78,reset:'resets in 21d',color:'#a78bfa'},
+   {label:'Auto',pct:17,reset:'resets in 21d',color:'#7dc4fa'}]},
+];
+function arc(svg,r,w,color,pct,warn=true){const c=2*Math.PI*r;const col=warn?warnColor(hex(color),pct):color;
+ const mk=(stroke,dash,op)=>{const e=document.createElementNS(NS,'circle');e.setAttribute('cx',110);e.setAttribute('cy',110);e.setAttribute('r',r);e.setAttribute('class','ring');e.setAttribute('stroke',stroke);e.setAttribute('stroke-width',w);e.setAttribute('stroke-dasharray',c);e.setAttribute('stroke-dashoffset',dash);e.style.opacity=op;svg.appendChild(e)};
+ mk(col,0,.20); mk(col,c*(1-Math.min(pct,100)/100),1)}
+function stack(px,rings,warn=true){const s=document.createElementNS(NS,'svg');s.setAttribute('width',px);s.setAttribute('height',px);s.setAttribute('viewBox','0 0 220 220');const w=26,g=6,r0=110-w/2-2;rings.forEach((r,i)=>arc(s,r0-i*(w+g),w,r.color,r.pct,warn));return s}
+// menu bar icons
+P.forEach(p=>{const s=stack(20,p.rings);s.querySelectorAll('.ring').forEach(e=>e.setAttribute('stroke-width',30));document.getElementById('mb').appendChild(s)});
+// popover
+document.getElementById('pop').innerHTML=P.map((p,i)=>`<div class="prov"><div id="a${i}"></div><div>
+ <div class="name" style="color:${p.brand}">${p.name}</div>
+ ${p.rings.map(r=>`<div class="lim"><span><span class="sw" style="background:${warnColor(hex(r.color),r.pct)}"></span>${r.label} · ${r.reset}</span><b>${r.pct}%</b></div>`).join('')}</div></div>`).join('');
+P.forEach((p,i)=>document.getElementById('a'+i).appendChild(stack(105,p.rings)));
+// warning ramp
+[52,82,96,100].forEach(pct=>{const d=document.createElement('div');d.className='c';d.appendChild(stack(78,[{color:'#e8845c',pct}]));d.insertAdjacentHTML('beforeend',`<div>${pct}%</div>`);document.getElementById('warn').appendChild(d)});
+// old single-hue comparison
+function tintOld(b,k){const c=hex(b),w=1-k;return rgb(c.map(v=>v+(255-v)*w*.55))}
+document.getElementById('old').innerHTML=P.map((p,i)=>`<div class="prov"><div id="o${i}"></div><div><div class="name" style="color:${p.brand}">${p.name}</div>
+ ${p.rings.map(r=>`<div class="lim"><span>${r.label}</span><b>${r.pct}%</b></div>`).join('')}</div></div>`).join('');
+P.forEach((p,i)=>{const shades=p.rings.map((_,j)=>1-j/Math.max(p.rings.length-1,1)*.5);
+ document.getElementById('o'+i).appendChild(stack(90,p.rings.map((r,j)=>({color:'#'+tintOld(p.brand,shades[j]).match(/\d+/g).map(v=>(+v).toString(16).padStart(2,'0')).join(''),pct:r.pct})),false))});
+</script></body></html>

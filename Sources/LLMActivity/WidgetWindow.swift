@@ -10,7 +10,7 @@ struct WidgetView: View {
         HStack(alignment: .top, spacing: 26) {
             ForEach(poller.usages.filter { settings.isEnabled($0.provider) }) { u in
                 VStack(spacing: 6) {
-                    RingStack(color: u.provider.color,
+                    RingStack(colors: u.provider.ringColors,
                               percents: u.limits.isEmpty ? [0.0] : u.limits.map(\.percent),
                               lineWidth: 11, gap: 3)
                         .frame(width: 96, height: 96)

@@ -29,6 +29,21 @@ enum Provider: String, CaseIterable, Identifiable {
         }
     }
 
+    /// One tone per ring, outer→inner, inside the tool's brand family.
+    /// The legend dot next to each limit uses the same entry.
+    var ringColors: [NSColor] {
+        func c(_ hex: UInt32) -> NSColor {
+            NSColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255,
+                    green: CGFloat((hex >> 8) & 0xFF) / 255,
+                    blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+        }
+        switch self {
+        case .claude: return [c(0xE8845C), c(0xECC06F), c(0xF7E2C0)]
+        case .codex: return [c(0x34D399), c(0xB8E986)]
+        case .cursor: return [c(0xA78BFA), c(0x7DC4FA)]
+        }
+    }
+
     /// "Installed" = the tool left credentials on this Mac.
     var isInstalled: Bool {
         switch self {
@@ -114,12 +129,13 @@ enum Provider: String, CaseIterable, Identifiable {
         return out
     }
 
-    /// Rings outer→inner: primary_window (5h), secondary_window (weekly).
+    /// Rings outer→inner: secondary_window (weekly), primary_window (5h).
+    /// Slow budget outside, fast window inside, matching Claude's clock order.
     static func parseCodex(_ data: Data) throws -> [UsageLimit] {
         let root = try json(data)
         guard let rl = root["rate_limit"] as? [String: Any] else { throw ProviderError.unexpected("no rate_limit") }
         var out: [UsageLimit] = []
-        for key in ["primary_window", "secondary_window"] {
+        for key in ["secondary_window", "primary_window"] {
             guard let w = rl[key] as? [String: Any] else { continue }
             let secs = (w["limit_window_seconds"] as? Double) ?? 0
             let label = secs >= 6 * 86400 ? "Weekly" : "\(max(1, Int(secs / 3600)))h session"

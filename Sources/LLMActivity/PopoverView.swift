@@ -72,7 +72,7 @@ struct ProviderRow: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            RingStack(color: usage.provider.color,
+            RingStack(colors: usage.provider.ringColors,
                       percents: usage.limits.isEmpty ? [0.0] : usage.limits.map(\.percent),
                       lineWidth: 12, gap: 3)
                 .frame(width: 110, height: 110)
@@ -84,8 +84,12 @@ struct ProviderRow: View {
                 if let e = usage.error {
                     Text("⚠︎ \(e)").font(.system(size: 11)).foregroundStyle(.secondary)
                 }
-                ForEach(Array(usage.limits.enumerated()), id: \.offset) { _, l in
-                    HStack(alignment: .firstTextBaseline) {
+                ForEach(Array(usage.limits.enumerated()), id: \.offset) { i, l in
+                    HStack(alignment: .firstTextBaseline, spacing: 7) {
+                        Circle()
+                            .fill(Color(nsColor: RingStack.warnColor(dotColor(i), percent: l.percent)))
+                            .frame(width: 9, height: 9)
+                            .alignmentGuide(.firstTextBaseline) { $0.height - 1 }
                         Text("\(l.label) · \(resetText(l.resetsAt, now: now))")
                             .font(.system(size: 12)).foregroundStyle(.secondary)
                         Spacer(minLength: 8)
@@ -98,5 +102,12 @@ struct ProviderRow: View {
                 }
             }
         }
+    }
+
+    /// The legend dot matches ring i; extra limits reuse the innermost tone.
+    private func dotColor(_ i: Int) -> NSColor {
+        let colors = usage.provider.ringColors
+        guard let last = colors.last else { return usage.provider.color }
+        return i < colors.count ? colors[i] : last
     }
 }
