@@ -31,8 +31,10 @@ struct PopoverView: View {
                     .foregroundStyle(.secondary).padding(.vertical, 12)
             }
 
-            Divider().padding(.bottom, 8)
-            HStack(spacing: 14) {
+            Divider()
+
+            sectionHeader("TOOLS")
+            HStack(spacing: 16) {
                 ForEach(poller.usages) { u in
                     Toggle(u.provider.shortName, isOn: Binding(
                         get: { settings.isEnabled(u.provider) },
@@ -40,20 +42,50 @@ struct PopoverView: View {
                         .toggleStyle(.checkbox)
                 }
             }
-            .padding(.bottom, 6)
-            Toggle("Monochrome icons", isOn: $settings.monochrome).toggleStyle(.switch).controlSize(.small)
-            Toggle("Desktop widget", isOn: $settings.showWidget).toggleStyle(.switch).controlSize(.small)
+            .controlSize(.small)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            sectionHeader("OPTIONS")
+            VStack(spacing: 8) {
+                optionRow("Monochrome icons", isOn: $settings.monochrome)
+                optionRow("Desktop widget", isOn: $settings.showWidget)
+            }
+
             HStack(spacing: 8) {
                 Button(poller.isRefreshing ? "Refreshing…" : "Refresh") { Task { await poller.refresh(force: true) } }
                     .disabled(poller.isRefreshing)
+                    .frame(maxWidth: .infinity)
                 Button("Quit") { NSApp.terminate(nil) }
+                    .frame(maxWidth: .infinity)
             }
             .frame(maxWidth: .infinity)
-            .padding(.top, 10)
+            .padding(.top, 12)
         }
         .padding(20)
         .frame(width: 360, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// Small all-caps label that groups the footer controls.
+    @ViewBuilder
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: 10, weight: .semibold))
+            .kerning(0.6)
+            .foregroundStyle(.tertiary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 10)
+            .padding(.bottom, 6)
+    }
+
+    /// Label left, switch flush right, so the switches line up in one column.
+    @ViewBuilder
+    private func optionRow(_ label: String, isOn: Binding<Bool>) -> some View {
+        HStack {
+            Text(label).font(.system(size: 13))
+            Spacer()
+            Toggle("", isOn: isOn).labelsHidden().toggleStyle(.switch).controlSize(.small)
+        }
     }
 
     /// Installed providers the user has not hidden, in the fixed order.
