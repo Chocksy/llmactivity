@@ -4,10 +4,11 @@ import SwiftUI
 
 struct WidgetView: View {
     @ObservedObject var poller: Poller
+    @ObservedObject var settings: Settings
 
     var body: some View {
         HStack(alignment: .top, spacing: 26) {
-            ForEach(poller.usages) { u in
+            ForEach(poller.usages.filter { settings.isEnabled($0.provider) }) { u in
                 VStack(spacing: 6) {
                     RingStack(color: u.provider.color,
                               percents: u.limits.isEmpty ? [0.0] : u.limits.map(\.percent),
@@ -45,7 +46,7 @@ final class WidgetWindow: NSWindow {
     private var cancellables = Set<AnyCancellable>()
 
     init(poller: Poller, settings: Settings) {
-        let hosting = NSHostingView(rootView: WidgetView(poller: poller))
+        let hosting = NSHostingView(rootView: WidgetView(poller: poller, settings: settings))
         let size = hosting.fittingSize
         super.init(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)
 
@@ -93,6 +94,17 @@ final class WidgetWindow: NSWindow {
             .receive(on: DispatchQueue.main)
             .sink { [weak self, weak hosting] _ in
                 guard let self, let hosting else { return }
+                let s = hosting.fittingSize
+                if s != self.frame.size { self.setContentSize(s) }
+            }
+            .store(in: &cancellables)
+
+        // Hiding a provider drops a column, so the card has to shrink too.
+        settings.$disabled
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self, weak hosting] _ in
+                guard let self, let hosting else { return }
+                hosting.layoutSubtreeIfNeeded()
                 let s = hosting.fittingSize
                 if s != self.frame.size { self.setContentSize(s) }
             }

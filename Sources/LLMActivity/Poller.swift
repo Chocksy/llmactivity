@@ -10,13 +10,15 @@ final class Poller: ObservableObject {
     @Published private(set) var lastRefresh: Date?
     @Published private(set) var isRefreshing = false
 
+    private let settings: Settings
     private let session: URLSession
     private var timer: Timer?
     /// Providers we must not call again before this date (set on HTTP 429).
     private var retryAfter: [Provider: Date] = [:]
 
-    init(providers: [Provider]) {
+    init(providers: [Provider], settings: Settings) {
         usages = providers.map { ProviderUsage(provider: $0) }
+        self.settings = settings
         let cfg = URLSessionConfiguration.ephemeral
         cfg.timeoutIntervalForRequest = 15
         cfg.timeoutIntervalForResource = 20
@@ -43,7 +45,9 @@ final class Poller: ObservableObject {
         defer { isRefreshing = false }
         // ponytail: fixed 5 min backoff after a 429; honoring the Retry-After header is the upgrade path.
         let now = Date()
-        let providers = usages.map(\.provider).filter { (retryAfter[$0].map { $0 <= now }) ?? true }
+        let providers = usages.map(\.provider)
+            .filter { settings.isEnabled($0) }
+            .filter { (retryAfter[$0].map { $0 <= now }) ?? true }
         guard !providers.isEmpty else { return }   // all backing off: keep the last state and timestamp
         let session = self.session
         // One task per provider. The payload is a struct, not the tuple the plan

@@ -19,16 +19,28 @@ struct PopoverView: View {
             Text("llmactivity").font(.system(size: 17, weight: .bold))
             Text(updatedText).font(.system(size: 12)).foregroundStyle(.secondary).padding(.bottom, 6)
 
-            ForEach(poller.usages) { u in
-                if u.provider != poller.usages.first?.provider { Divider() }
+            ForEach(rows) { u in
+                if u.provider != rows.first?.provider { Divider() }
                 ProviderRow(usage: u, now: poller.lastRefresh ?? Date()).padding(.vertical, 10)
             }
             if poller.usages.isEmpty {
                 Text("No Claude Code, Codex or Cursor login found on this Mac.")
                     .foregroundStyle(.secondary).padding(.vertical, 12)
+            } else if rows.isEmpty {
+                Text("All tools hidden. Enable one above.")
+                    .foregroundStyle(.secondary).padding(.vertical, 12)
             }
 
             Divider().padding(.bottom, 8)
+            HStack(spacing: 14) {
+                ForEach(poller.usages) { u in
+                    Toggle(u.provider.shortName, isOn: Binding(
+                        get: { settings.isEnabled(u.provider) },
+                        set: { settings.setEnabled(u.provider, $0) }))
+                        .toggleStyle(.checkbox)
+                }
+            }
+            .padding(.bottom, 6)
             Toggle("Monochrome icons", isOn: $settings.monochrome).toggleStyle(.switch).controlSize(.small)
             Toggle("Desktop widget", isOn: $settings.showWidget).toggleStyle(.switch).controlSize(.small)
             HStack(spacing: 8) {
@@ -43,6 +55,9 @@ struct PopoverView: View {
         .frame(width: 360, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
     }
+
+    /// Installed providers the user has not hidden, in the fixed order.
+    private var rows: [ProviderUsage] { poller.usages.filter { settings.isEnabled($0.provider) } }
 
     private var updatedText: String {
         guard let t = poller.lastRefresh else { return "Loading…" }

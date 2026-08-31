@@ -23,16 +23,6 @@ final class StatusBarController: NSObject {
         hosting.sizingOptions = [.preferredContentSize]
         super.init()
 
-        // Order left→right on the bar = reverse insertion (menu bar grows leftwards).
-        for usage in poller.usages.reversed() {
-            let item = NSStatusBar.system.statusItem(withLength: 22)
-            item.button?.target = self
-            item.button?.action = #selector(togglePopover(_:))
-            item.button?.imagePosition = .imageOnly
-            item.button?.toolTip = usage.provider.name
-            items[usage.provider] = item
-        }
-
         popover.behavior = .transient
         popover.animates = true
         popover.contentViewController = hosting
@@ -44,6 +34,32 @@ final class StatusBarController: NSObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] usages, mono in self?.render(usages, monochrome: mono) }
             .store(in: &cancellables)
+
+        // Hiding a provider removes its item; re-enabling puts it back in the
+        // Claude, Codex, Cursor order. Emits the current value on subscribe, so
+        // this also builds the items at launch.
+        settings.$disabled
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] disabled in self?.rebuildItems(disabled: disabled) }
+            .store(in: &cancellables)
+    }
+
+    /// Rebuild every status item from scratch. Cheap (max three) and it keeps
+    /// the left→right order without tracking insertion positions.
+    private func rebuildItems(disabled: Set<Provider>) {
+        if popover.isShown { popover.performClose(nil) }
+        for item in items.values { NSStatusBar.system.removeStatusItem(item) }
+        items.removeAll()
+        // Order left→right on the bar = reverse insertion (menu bar grows leftwards).
+        for usage in poller.usages.reversed() where !disabled.contains(usage.provider) {
+            let item = NSStatusBar.system.statusItem(withLength: 22)
+            item.button?.target = self
+            item.button?.action = #selector(togglePopover(_:))
+            item.button?.imagePosition = .imageOnly
+            item.button?.toolTip = usage.provider.name
+            items[usage.provider] = item
+        }
+        render(poller.usages, monochrome: settings.monochrome)
     }
 
     private func render(_ usages: [ProviderUsage], monochrome: Bool) {
@@ -67,7 +83,8 @@ final class StatusBarController: NSObject {
 
     /// `--show-popover`: the same code path as a click on the first status item.
     func showPopover() {
-        guard let provider = poller.usages.first?.provider, let button = items[provider]?.button else { return }
+        guard let provider = poller.usages.map(\.provider).first(where: { items[$0] != nil }),
+              let button = items[provider]?.button else { return }
         togglePopover(button)
     }
 

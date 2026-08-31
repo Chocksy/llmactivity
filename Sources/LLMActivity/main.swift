@@ -15,7 +15,7 @@ MainActor.assumeIsolated {
         options: [.userInitiatedAllowingIdleSystemSleep], reason: "Polling AI usage limits")
 
     let settings = Settings.shared
-    let poller = Poller(providers: Provider.allCases.filter(\.isInstalled))
+    let poller = Poller(providers: Provider.allCases.filter(\.isInstalled), settings: settings)
     let statusBar = StatusBarController(poller: poller, settings: settings)
     let widget = WidgetWindow(poller: poller, settings: settings)
     poller.start(interval: settings.pollInterval)
