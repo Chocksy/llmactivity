@@ -17,9 +17,10 @@ MainActor.assumeIsolated {
     let settings = Settings.shared
     let poller = Poller(providers: Provider.allCases.filter(\.isInstalled))
     let statusBar = StatusBarController(poller: poller, settings: settings)
+    let widget = WidgetWindow(poller: poller, settings: settings)
     poller.start(interval: settings.pollInterval)
 
-    withExtendedLifetime((activity, statusBar)) {
+    withExtendedLifetime((activity, statusBar, widget)) {
         app.run()
     }
 }
