@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>llmactivity — ring mockup</title>
+<style>
+  :root { --bg:#1c1c1e; --text:#f2f2f4; --muted:#9a9aa1; --line:#3a3a3e;
+    --claude:#e8845c; --codex:#34d399; --cursor:#a78bfa; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#0d0d0f; color:var(--text); font:14px/1.4 -apple-system,"SF Pro Text",Inter,system-ui,sans-serif; padding:40px; }
+  h1 { font-size:20px; margin:0 0 6px; }
+  .sub { color:var(--muted); margin-bottom:28px; max-width:900px; }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:28px 0 10px; }
+  svg { display:block; }
+  .ring { fill:none; stroke-linecap:round; transform:rotate(-90deg); transform-origin:50% 50%; transition:stroke-dashoffset 900ms cubic-bezier(.2,.8,.2,1); }
+  /* menu bar */
+  .menubar { background:#151517; border:1px solid var(--line); border-radius:10px; height:28px; display:flex; align-items:center; justify-content:flex-end; gap:16px; padding:0 12px; width:420px; color:#ddd; font-size:12px; }
+  .menubar .icons { display:flex; gap:10px; align-items:center; }
+  /* popover */
+  .card { background:var(--bg); border:1px solid var(--line); border-radius:18px; padding:20px 22px 16px; width:360px; box-shadow:0 20px 60px #0008; }
+  .title { font-weight:700; font-size:17px; }
+  .updated { color:var(--muted); font-size:12px; margin-bottom:6px; }
+  .provider { display:grid; grid-template-columns:118px 1fr; gap:16px; align-items:center; padding:12px 0; border-top:1px solid var(--line); }
+  .provider:first-of-type { border-top:0; }
+  .provider .name { font-weight:700; font-size:15px; margin-bottom:4px; }
+  .lim { display:grid; grid-template-columns:1fr auto; font-size:12px; color:var(--muted); padding:2px 0; gap:8px; }
+  .lim b { color:var(--text); font-variant-numeric:tabular-nums; font-size:13px; }
+  .lim .sw { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  .actions { display:flex; gap:8px; margin-top:10px; }
+  .actions button { flex:1; background:#3a3a3e; color:var(--text); border:0; border-radius:10px; padding:9px; font:inherit; }
+  /* desktop widget */
+  .widget { background:#1c1c1ecc; backdrop-filter:blur(20px); border:1px solid #ffffff14; border-radius:24px; padding:18px 22px; display:flex; gap:26px; width:max-content; box-shadow:0 20px 60px #0008; }
+  .widget .col { text-align:center; }
+  .widget .col .lbl { font-size:12px; margin-top:6px; color:var(--muted); }
+  .widget .col .lbl b { display:block; font-size:14px; }
+  .row { display:flex; gap:40px; align-items:flex-start; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+<h1>llmactivity — ring mockup</h1>
+<div class="sub">One ring stack per tool found on the Mac. Ring count follows each tool's billing: <b>Claude</b> 3 (5h · weekly · Fable weekly), <b>Codex</b> 2 (5h · weekly), <b>Cursor</b> 2 (auto · API, monthly). Outer ring = the window you said you watch most. Numbers are live from your accounts (Codex is at 0 right now, shown as 62/38). Reload to replay the fill.</div>
+
+<h2>Menu bar · one icon per tool</h2>
+<div class="menubar"><div class="icons" id="mb"></div><span>54°C</span><span>Mon 14:52</span></div>
+
+<div class="row">
+<div>
+<h2>Popover (click any icon)</h2>
+<div class="card">
+  <div class="title">llmactivity</div>
+  <div class="updated">Updated just now</div>
+  <div id="list"></div>
+  <div class="actions"><button>Refresh</button><button>Widget</button><button>Quit</button></div>
+</div>
+</div>
+<div>
+<h2>Desktop widget</h2>
+<div class="widget" id="widget"></div>
+</div>
+</div>
+
+<script>
+// Rings listed outer -> inner. shade = lighter/darker tint of the provider color for each ring.
+const P = [
+  { name:'Claude Code', color:'#e8845c', rings:[
+      {label:'Weekly',       pct:7,  reset:'resets Mon 08:00',  shade:1.0},
+      {label:'Fable weekly', pct:7,  reset:'resets Mon 08:00',  shade:0.75},
+      {label:'5h session',   pct:48, reset:'resets in 1h',      shade:0.5}] },
+  { name:'Codex', color:'#34d399', rings:[
+      {label:'5h session',   pct:62, reset:'resets in 3h',      shade:1.0},
+      {label:'Weekly',       pct:38, reset:'resets in 4d',      shade:0.6}] },
+  { name:'Cursor', color:'#a78bfa', rings:[
+      {label:'API models',   pct:71, reset:'resets in 22d',     shade:1.0},
+      {label:'Auto',         pct:20, reset:'resets in 22d',     shade:0.6}] },
+];
+const NS='http://www.w3.org/2000/svg';
+function tint(hex, k){ // blend toward white as k drops (1 = base color)
+  const n=parseInt(hex.slice(1),16), r=n>>16, g=n>>8&255, b=n&255, w=1-k;
+  return `rgb(${r+(255-r)*w*0.55|0},${g+(255-g)*w*0.55|0},${b+(255-b)*w*0.55|0})`; }
+function arc(svg, r, w, color, pct){
+  const c=2*Math.PI*r;
+  const mk=(dash,op)=>{ const e=document.createElementNS(NS,'circle');
+    e.setAttribute('cx',110); e.setAttribute('cy',110); e.setAttribute('r',r); e.setAttribute('class','ring');
+    e.setAttribute('stroke',color); e.setAttribute('stroke-width',w); e.setAttribute('stroke-dasharray',c);
+    e.setAttribute('stroke-dashoffset',dash); e.style.opacity=op; svg.appendChild(e); return e; };
+  mk(0,.22); const fg=mk(c,1);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>fg.setAttribute('stroke-dashoffset', c*(1-Math.min(pct,100)/100))));
+}
+// Stack: rings from outer to inner, constant stroke, gap 6 (in 220 viewbox units)
+function stack(px, p){
+  const s=document.createElementNS(NS,'svg'); s.setAttribute('width',px); s.setAttribute('height',px); s.setAttribute('viewBox','0 0 220 220');
+  const w=26, gap=6, r0=110-w/2-2;
+  p.rings.forEach((r,i)=>arc(s, r0-i*(w+gap), w, tint(p.color,r.shade), r.pct));
+  return s;
+}
+// menu bar: 20 px per tool, thicker strokes so they read at 20 px
+P.forEach(p=>{ const s=stack(20,p); s.querySelectorAll('.ring').forEach(e=>e.setAttribute('stroke-width',30)); document.getElementById('mb').appendChild(s); });
+// popover list
+document.getElementById('list').innerHTML = P.map((p,i)=>`
+  <div class="provider">
+    <div class="art" id="art${i}"></div>
+    <div>
+      <div class="name" style="color:${p.color}">${p.name}</div>
+      ${p.rings.map(r=>`<div class="lim"><span><span class="sw" style="background:${tint(p.color,r.shade)}"></span>${r.label} · ${r.reset}</span><b>${r.pct}%</b></div>`).join('')}
+    </div>
+  </div>`).join('');
+P.forEach((p,i)=>document.getElementById('art'+i).appendChild(stack(110,p)));
+// desktop widget
+P.forEach(p=>{ const col=document.createElement('div'); col.className='col'; col.appendChild(stack(96,p));
+  col.insertAdjacentHTML('beforeend',`<div class="lbl"><b style="color:${p.color}">${p.name.split(' ')[0]}</b>${p.rings.map(r=>r.pct+'%').join(' · ')}</div>`);
+  document.getElementById('widget').appendChild(col); });
+</script>
+</body>
+</html>
