@@ -57,7 +57,9 @@ struct ProviderRow: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            RingStack(color: usage.provider.color, percents: usage.limits.map(\.percent), lineWidth: 12, gap: 3)
+            RingStack(color: usage.provider.color,
+                      percents: usage.limits.isEmpty ? [0.0] : usage.limits.map(\.percent),
+                      lineWidth: 12, gap: 3)
                 .frame(width: 110, height: 110)
                 .opacity(usage.isStale ? 0.5 : 1)
             VStack(alignment: .leading, spacing: 3) {

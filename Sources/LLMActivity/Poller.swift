@@ -12,6 +12,8 @@ final class Poller: ObservableObject {
 
     private let session: URLSession
     private var timer: Timer?
+    /// Providers we must not call again before this date (set on HTTP 429).
+    private var retryAfter: [Provider: Date] = [:]
 
     init(providers: [Provider]) {
         usages = providers.map { ProviderUsage(provider: $0) }
@@ -39,7 +41,10 @@ final class Poller: ObservableObject {
         guard !isRefreshing else { return }
         isRefreshing = true
         defer { isRefreshing = false }
-        let providers = usages.map(\.provider)
+        // ponytail: fixed 5 min backoff after a 429; honoring the Retry-After header is the upgrade path.
+        let now = Date()
+        let providers = usages.map(\.provider).filter { (retryAfter[$0].map { $0 <= now }) ?? true }
+        guard !providers.isEmpty else { return }   // all backing off: keep the last state and timestamp
         let session = self.session
         // One task per provider. The payload is a struct, not the tuple the plan
         // used: with Swift 6.3.3 in release (-O) the tuple's Provider field came
@@ -64,9 +69,13 @@ final class Poller: ObservableObject {
                 usages[i].limits = limits
                 usages[i].fetchedAt = Date()
                 usages[i].error = nil
+                retryAfter[p] = nil
             case .failure(let e):
                 usages[i].error = (e as? ProviderError)?.description
                     ?? ((e as? URLError) != nil ? "Offline" : e.localizedDescription)
+                if case .http(429)? = e as? ProviderError {
+                    retryAfter[p] = Date().addingTimeInterval(300)
+                }
             }
         }
         lastRefresh = Date()

@@ -28,7 +28,10 @@ enum ProviderError: Error, CustomStringConvertible {
         switch self {
         case .notInstalled: return "Not installed"
         case .auth(let m): return m
-        case .http(let code): return code == 401 || code == 403 ? "Token expired, open the tool once" : "HTTP \(code)"
+        case .http(let code):
+            if code == 401 || code == 403 { return "Token expired, open the tool once" }
+            if code == 429 { return "Rate limited, retrying later" }
+            return "HTTP \(code)"
         case .unexpected(let m): return "Unexpected response: \(m)"
         }
     }

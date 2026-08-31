@@ -9,7 +9,9 @@ struct WidgetView: View {
         HStack(alignment: .top, spacing: 26) {
             ForEach(poller.usages) { u in
                 VStack(spacing: 6) {
-                    RingStack(color: u.provider.color, percents: u.limits.map(\.percent), lineWidth: 11, gap: 3)
+                    RingStack(color: u.provider.color,
+                              percents: u.limits.isEmpty ? [0.0] : u.limits.map(\.percent),
+                              lineWidth: 11, gap: 3)
                         .frame(width: 96, height: 96)
                         .opacity(u.isStale ? 0.5 : 1)
                     Text(u.provider.shortName)
