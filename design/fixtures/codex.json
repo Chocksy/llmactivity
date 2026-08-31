@@ -1,0 +1,51 @@
+{
+ "user_id": "user-XXXX",
+ "account_id": "00000000-0000-0000-0000-000000000000",
+ "email": "user@example.com",
+ "plan_type": "team",
+ "rate_limit": {
+  "allowed": true,
+  "limit_reached": false,
+  "primary_window": {
+   "used_percent": 62,
+   "limit_window_seconds": 18000,
+   "reset_after_seconds": 18000,
+   "reset_at": 1788199704
+  },
+  "secondary_window": {
+   "used_percent": 38,
+   "limit_window_seconds": 604800,
+   "reset_after_seconds": 604800,
+   "reset_at": 1788786504
+  }
+ },
+ "code_review_rate_limit": null,
+ "additional_rate_limits": null,
+ "credits": {
+  "has_credits": true,
+  "unlimited": false,
+  "overage_limit_reached": false,
+  "balance": null,
+  "approx_local_messages": null,
+  "approx_cloud_messages": null
+ },
+ "spend_control": {
+  "reached": true,
+  "individual_limit": {
+   "source": "workspace_spend_controls",
+   "limit": "0",
+   "used": "0.0",
+   "remaining": "0.0",
+   "used_percent": 100,
+   "remaining_percent": 0,
+   "reset_after_seconds": 39097,
+   "reset_at": 1788220801
+  }
+ },
+ "rate_limit_reached_type": null,
+ "promo": null,
+ "rate_limit_reset_credits": {
+  "available_count": 0,
+  "applicable_available_count": 0
+ }
+}

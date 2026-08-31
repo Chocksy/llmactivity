@@ -1,0 +1,27 @@
+{
+ "billingCycleStart": "2026-08-22T08:37:25.000Z",
+ "billingCycleEnd": "2026-09-22T08:37:25.000Z",
+ "membershipType": "pro_plus",
+ "individualUsage": {
+  "plan": {
+   "enabled": true,
+   "used": 7000,
+   "limit": 7000,
+   "remaining": 0,
+   "breakdown": {
+    "included": 7000,
+    "bonus": 19232,
+    "total": 26232
+   },
+   "autoPercentUsed": 15.326666666666666,
+   "apiPercentUsed": 71.27272727272728,
+   "totalPercentUsed": 20.024427480916028
+  },
+  "onDemand": {
+   "enabled": true,
+   "used": 0,
+   "limit": 5000,
+   "remaining": 5000
+  }
+ }
+}
