@@ -50,20 +50,18 @@ final class StatusBarController: NSObject {
         for u in usages {
             guard let item = items[u.provider], let button = item.button else { continue }
             let percents = u.limits.isEmpty ? [0.0] : u.limits.map(\.percent)
-            button.image = RingStack.image(color: u.provider.color, percents: percents, size: 18, monochrome: monochrome)
-            button.appearsDisabled = u.isStale
-            // Monochrome rings all look alike, so name the tool next to each one.
+            // Monochrome rings all look alike, so stack the tool name over a smaller ring.
             if monochrome {
                 item.length = NSStatusItem.variableLength
-                button.imagePosition = .imageLeading
-                button.attributedTitle = NSAttributedString(
-                    string: u.provider.shortName,
-                    attributes: [.font: NSFont.systemFont(ofSize: 11, weight: .medium), .baselineOffset: 1])
+                button.image = RingStack.stackedImage(color: u.provider.color, percents: percents,
+                                                      label: u.provider.shortName, monochrome: true)
             } else {
                 item.length = 22
-                button.imagePosition = .imageOnly
-                button.attributedTitle = NSAttributedString(string: "")
+                button.image = RingStack.image(color: u.provider.color, percents: percents, size: 18, monochrome: false)
             }
+            button.imagePosition = .imageOnly
+            button.attributedTitle = NSAttributedString(string: "")
+            button.appearsDisabled = u.isStale
         }
     }
 
