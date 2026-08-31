@@ -20,6 +20,11 @@ MainActor.assumeIsolated {
     let widget = WidgetWindow(poller: poller, settings: settings)
     poller.start(interval: settings.pollInterval)
 
+    // --show-popover: open the popover by itself so a screenshot can check it.
+    if CommandLine.arguments.contains("--show-popover") {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { statusBar.showPopover() }
+    }
+
     withExtendedLifetime((activity, statusBar, widget)) {
         app.run()
     }

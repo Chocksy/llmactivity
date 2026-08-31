@@ -18,6 +18,7 @@ A tool with no local login shows no icon.
 swift build -c release
 .build/release/LLMActivity --dump        # print live limits and exit
 .build/release/LLMActivity --parsecheck  # parser self-test
+.build/release/LLMActivity --show-popover # open the popover 3s after launch (for screenshots)
 scripts/make-app.sh 0.1.0                # LLMActivity.app (ad-hoc signed)
 scripts/make-dmg.sh 0.1.0
 ```

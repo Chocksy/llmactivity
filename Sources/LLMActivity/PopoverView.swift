@@ -40,7 +40,8 @@ struct PopoverView: View {
             .padding(.top, 10)
         }
         .padding(20)
-        .frame(width: 360)
+        .frame(width: 360, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private var updatedText: String {
