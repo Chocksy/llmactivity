@@ -18,12 +18,6 @@ struct ProviderUsage: Identifiable {
     var isStale: Bool { error != nil }
 }
 
-/// Stub so Task 1 builds; Task 2 replaces it with the real enum in Providers.swift.
-enum Provider: String, CaseIterable, Identifiable {
-    case claude, codex, cursor
-    var id: String { rawValue }
-}
-
 enum ProviderError: Error, CustomStringConvertible {
     case notInstalled
     case auth(String)          // missing / expired credential; message tells the user what to do
