@@ -13,6 +13,7 @@ func resetText(_ date: Date?, now: Date = Date()) -> String {
 struct PopoverView: View {
     @ObservedObject var poller: Poller
     @ObservedObject var settings: Settings
+    @ObservedObject var updater = Updater.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -60,6 +61,14 @@ struct PopoverView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.top, 12)
+
+            if let v = updater.available {
+                Button("Update available: v\(v)") { updater.openReleasePage() }
+                    .buttonStyle(.link)
+                    .font(.system(size: 12))
+                    .padding(.top, 8)
+                    .frame(maxWidth: .infinity)
+            }
         }
         .padding(20)
         .frame(width: 360, alignment: .leading)

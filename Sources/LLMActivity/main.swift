@@ -19,6 +19,7 @@ MainActor.assumeIsolated {
     let statusBar = StatusBarController(poller: poller, settings: settings)
     let widget = WidgetWindow(poller: poller, settings: settings)
     poller.start(interval: settings.pollInterval)
+    Updater.shared.start()
 
     // --show-popover: open the popover by itself so a screenshot can check it.
     if CommandLine.arguments.contains("--show-popover") {

@@ -154,13 +154,13 @@ func runParseCheck() -> Int32 {
     print("=== Parser self-test ===")
     do {
         check("claude", try Provider.parseClaude(Data(Fixtures.claude.utf8)), [
-            ("Weekly", 7, "2026-09-07T07:59:59Z"),
-            ("Fable weekly", 7, "2026-09-07T07:59:59Z"),
             ("5h session", 48, "2026-08-31T15:49:59Z"),
+            ("Fable weekly", 7, "2026-09-07T07:59:59Z"),
+            ("Weekly", 7, "2026-09-07T07:59:59Z"),
         ])
         check("codex", try Provider.parseCodex(Data(Fixtures.codex.utf8)), [
-            ("Weekly", 38, "2026-09-07T13:08:24Z"),
             ("5h session", 62, "2026-08-31T18:08:24Z"),
+            ("Weekly", 38, "2026-09-07T13:08:24Z"),
         ])
         check("cursor", try Provider.parseCursor(Data(Fixtures.cursor.utf8)), [
             ("API models", 71, "2026-09-22T08:37:25Z"),
@@ -169,6 +169,13 @@ func runParseCheck() -> Int32 {
         // Garbage must throw, not crash or return empty.
         do { _ = try Provider.parseClaude(Data("{}".utf8)); print("  empty    FAIL (no throw)"); pass = false }
         catch { print("  empty    PASS") }
+
+        let versionOK = Updater.isNewer("0.2.0", than: "0.1.0")
+            && Updater.isNewer("0.10.0", than: "0.9.0")
+            && !Updater.isNewer("0.1.0", than: "0.1.0")
+            && !Updater.isNewer("0.1.0", than: "0.2.0")
+        print("  version  \(versionOK ? "PASS" : "FAIL")")
+        pass = pass && versionOK
     } catch {
         print("  threw: \(error)"); pass = false
     }

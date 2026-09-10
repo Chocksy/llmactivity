@@ -108,34 +108,35 @@ enum Provider: String, CaseIterable, Identifiable {
         return o
     }
 
-    /// Rings outer→inner: weekly_all, weekly_scoped (model name), session.
+    /// Rings outer→inner: session (5h), weekly_scoped (model name), weekly_all.
+    /// Fast window outside like a clock second hand; slower budgets toward the center.
     static func parseClaude(_ data: Data) throws -> [UsageLimit] {
         let root = try json(data)
         guard let limits = root["limits"] as? [[String: Any]] else { throw ProviderError.unexpected("no limits[]") }
         func find(_ kind: String) -> [String: Any]? { limits.first { $0["kind"] as? String == kind } }
         func pct(_ l: [String: Any]) -> Double { (l["percent"] as? Double) ?? 0 }
         var out: [UsageLimit] = []
-        if let l = find("weekly_all") {
-            out.append(UsageLimit(label: "Weekly", percent: pct(l), resetsAt: DateParse.iso(l["resets_at"])))
+        if let l = find("session") {
+            out.append(UsageLimit(label: "5h session", percent: pct(l), resetsAt: DateParse.iso(l["resets_at"])))
         }
         if let l = find("weekly_scoped") {
             let model = ((l["scope"] as? [String: Any])?["model"] as? [String: Any])?["display_name"] as? String ?? "Model"
             out.append(UsageLimit(label: "\(model) weekly", percent: pct(l), resetsAt: DateParse.iso(l["resets_at"])))
         }
-        if let l = find("session") {
-            out.append(UsageLimit(label: "5h session", percent: pct(l), resetsAt: DateParse.iso(l["resets_at"])))
+        if let l = find("weekly_all") {
+            out.append(UsageLimit(label: "Weekly", percent: pct(l), resetsAt: DateParse.iso(l["resets_at"])))
         }
         guard !out.isEmpty else { throw ProviderError.unexpected("no known limit kinds") }
         return out
     }
 
-    /// Rings outer→inner: secondary_window (weekly), primary_window (5h).
-    /// Slow budget outside, fast window inside, matching Claude's clock order.
+    /// Rings outer→inner: primary_window (5h), secondary_window (weekly).
+    /// Fast window outside, slow budget inside — same clock order as Claude.
     static func parseCodex(_ data: Data) throws -> [UsageLimit] {
         let root = try json(data)
         guard let rl = root["rate_limit"] as? [String: Any] else { throw ProviderError.unexpected("no rate_limit") }
         var out: [UsageLimit] = []
-        for key in ["secondary_window", "primary_window"] {
+        for key in ["primary_window", "secondary_window"] {
             guard let w = rl[key] as? [String: Any] else { continue }
             let secs = (w["limit_window_seconds"] as? Double) ?? 0
             let label = secs >= 6 * 86400 ? "Weekly" : "\(max(1, Int(secs / 3600)))h session"
