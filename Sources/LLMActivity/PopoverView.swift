@@ -115,6 +115,20 @@ struct PopoverView: View {
                     .controlSize(.small)
                     .fixedSize()
                 }
+                if settings.widgetStyle == .edge {
+                    HStack {
+                        Text("Side").font(.system(size: 13))
+                        Spacer()
+                        Picker("Side", selection: $settings.edgeSide) {
+                            Text("Left").tag(EdgeSide.left)
+                            Text("Right").tag(EdgeSide.right)
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                        .controlSize(.small)
+                        .fixedSize()
+                    }
+                }
             }
         }
 

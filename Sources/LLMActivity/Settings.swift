@@ -2,6 +2,7 @@ import AppKit
 import Combine
 
 enum WidgetStyle: String { case card, edge }
+enum EdgeSide: String { case left, right }
 
 @MainActor
 final class Settings: ObservableObject {
@@ -11,6 +12,7 @@ final class Settings: ObservableObject {
     @Published var monochrome: Bool { didSet { d.set(monochrome, forKey: "monochrome") } }
     @Published var showWidget: Bool { didSet { d.set(showWidget, forKey: "showWidget") } }
     @Published var widgetStyle: WidgetStyle { didSet { d.set(widgetStyle.rawValue, forKey: "widgetStyle") } }
+    @Published var edgeSide: EdgeSide { didSet { d.set(edgeSide.rawValue, forKey: "edgeSide") } }
     /// Providers the user hid, so the menu bar does not get crowded.
     @Published var disabled: Set<Provider> { didSet { d.set(disabled.map(\.rawValue), forKey: "disabledProviders") } }
 
@@ -46,6 +48,7 @@ final class Settings: ObservableObject {
         monochrome = d.bool(forKey: "monochrome")
         showWidget = d.bool(forKey: "showWidget")
         widgetStyle = d.string(forKey: "widgetStyle").flatMap(WidgetStyle.init(rawValue:)) ?? .card
+        edgeSide = d.string(forKey: "edgeSide").flatMap(EdgeSide.init(rawValue:)) ?? .right
         disabled = Set((d.array(forKey: "disabledProviders") as? [String] ?? []).compactMap(Provider.init(rawValue:)))
         hiddenLimits = Set(d.stringArray(forKey: "hiddenLimits") ?? [])
     }

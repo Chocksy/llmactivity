@@ -15,7 +15,7 @@ Apple-Activity-style usage rings for the AI coding tools on your Mac: Claude Cod
 - **Reset times** on every row: "Resets in 4h 24m", "Resets Thu 10:32", "Resets Oct 22".
 - **Settings behind the gear.** The popover shows only usage cards (small ring, bars, reset times). Hide any provider to keep the menu bar tidy; the widget drops that column too.
 - **Monochrome mode** swaps the icons for template images, so macOS tints them like the system icons.
-- **Desktop widget**, two styles: a translucent card above the wallpaper and under your app windows (drag it anywhere), or a black edge strip docked to the right screen edge, above windows. Hover a tool on the strip to see its limits; drag it up or down.
+- **Desktop widget**, two styles: a translucent card above the wallpaper and under your app windows (drag it anywhere), or a black edge strip docked to a screen edge, above windows. The strip shows each tool's logo inside its rings; hover one and a card slides out with an arrow pointing at it. Pick Left or Right in Settings, or drag the strip to any screen: it snaps to the nearest side and remembers the display.
 - **Update check.** On launch and once a day it asks the GitHub releases API for the latest tag. A newer version puts an "Update available" link in the popover that opens the release page. Nothing downloads or installs itself.
 - **Nothing renders per frame.** The menu bar images are redrawn only when the data or the monochrome setting changes.
 
@@ -69,7 +69,7 @@ It runs as a menu bar accessory with no Dock icon.
 
 ## Settings
 
-In the popover's Settings (gear): per-tool and per-limit checkboxes, **Monochrome icons**, **Desktop widget** and its style (Card or Edge strip). Poll interval is a defaults key:
+In the popover's Settings (gear): per-tool and per-limit checkboxes, **Monochrome icons**, **Desktop widget** and its style (Card or Edge strip), and the strip's side (Left or Right). Poll interval is a defaults key:
 
 ```sh
 defaults write com.chocksy.llmactivity pollInterval 30   # seconds, floor 15
