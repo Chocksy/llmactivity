@@ -16,7 +16,7 @@ Apple-Activity-style usage rings for the AI coding tools on your Mac: Claude Cod
 - **Settings behind the gear.** The popover shows only usage cards (small ring, bars, reset times). Hide any provider to keep the menu bar tidy; the widget drops that column too.
 - **Monochrome mode** swaps the icons for template images, so macOS tints them like the system icons.
 - **Desktop widget**, two styles: a translucent card above the wallpaper and under your app windows (drag it anywhere), or a black edge strip docked to a screen edge, above windows. The strip shows each tool's logo inside its rings; hover one and a card slides out with an arrow pointing at it. Pick Left or Right in Settings, or drag the strip to any screen: it snaps to the nearest side and remembers the display.
-- **Update check.** On launch and once a day it asks the GitHub releases API for the latest tag. A newer version puts an "Update available" link in the popover that opens the release page. Nothing downloads or installs itself.
+- **Auto-update.** On launch and once a day it asks the GitHub releases API for the latest tag. A newer version installs itself: it downloads the DMG, checks the app carries our Developer ID signature, swaps the bundle and relaunches. If that fails (say, the app runs from a read-only folder), an "Update to vX" button in the popover retries, then opens the release page.
 - **Nothing renders per frame.** The menu bar images are redrawn only when the data or the monochrome setting changes.
 
 ## Menu bar

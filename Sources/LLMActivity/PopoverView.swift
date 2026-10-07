@@ -55,7 +55,8 @@ struct PopoverView: View {
         }
 
         if let v = updater.available {
-            Button("Update available: v\(v)") { updater.openReleasePage() }
+            Button(updater.installing ? "Installing v\(v)…" : "Update to v\(v)") { updater.install() }
+                .disabled(updater.installing)
                 .buttonStyle(.link)
                 .font(.system(size: 12))
                 .padding(.top, 10)
