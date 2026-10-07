@@ -18,13 +18,38 @@ jobs:
       - name: Derive version from tag
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
 
-      # swift build -c release, assemble LLMActivity.app, build the icon, ad-hoc codesign.
+      # Developer ID cert into a throwaway keychain; API key for notarytool.
+      # Without a signed + notarized DMG, Gatekeeper says "could not verify … free of malware".
+      - name: Import signing credentials
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
+        run: |
+          KC="$RUNNER_TEMP/signing.keychain-db"
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p ci "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p ci "$KC"
+          security import "$RUNNER_TEMP/cert.p12" -P "$APPLE_CERTIFICATE_PASSWORD" -A -f pkcs12 -k "$KC"
+          security set-key-partition-list -S apple-tool:,apple: -k ci "$KC" >/dev/null
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          echo "$APPLE_API_KEY_CONTENT" > "$RUNNER_TEMP/AuthKey.p8"
+
+      # swift build -c release, assemble LLMActivity.app, build the icon, Developer ID codesign.
       - name: Build app
+        env:
+          SIGN_ID: ${{ secrets.APPLE_SIGNING_IDENTITY }}
         run: bash scripts/make-app.sh "$VERSION"
 
-      # Requires LLMActivity.app from the previous step; emits LLMActivity-$VERSION.dmg.
+      # Requires LLMActivity.app from the previous step; emits a signed, notarized,
+      # stapled LLMActivity-$VERSION.dmg.
       - name: Build DMG
-        run: bash scripts/make-dmg.sh "$VERSION"
+        env:
+          SIGN_ID: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          ASC_KEY_ID: ${{ secrets.APPLE_API_KEY }}
+          ASC_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER }}
+        run: ASC_KEY_PATH="$RUNNER_TEMP/AuthKey.p8" bash scripts/make-dmg.sh "$VERSION"
 
       - name: Publish release
         env:

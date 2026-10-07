@@ -1,5 +1,6 @@
 #!/bin/bash
-# Build LLMActivity.app (ad-hoc signed) from the SPM executable.
+# Build LLMActivity.app from the SPM executable. Signs with $SIGN_ID (a
+# "Developer ID Application: …" identity) when set, ad-hoc otherwise.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -27,8 +28,14 @@ for sz in 16 32 128 256 512; do
 done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 
-echo "==> ad-hoc codesign"
-codesign --force --deep -s - "$APP"
+if [ -n "${SIGN_ID:-}" ]; then
+    # Hardened runtime + secure timestamp are what notarization requires.
+    echo "==> codesign as $SIGN_ID"
+    codesign --force --options runtime --timestamp -s "$SIGN_ID" "$APP"
+else
+    echo "==> ad-hoc codesign (set SIGN_ID for a Developer ID build)"
+    codesign --force --deep -s - "$APP"
+fi
 codesign --verify --verbose "$APP" 2>&1 | sed 's/^/    /'
 
 echo "==> done: $(pwd)/$APP"
