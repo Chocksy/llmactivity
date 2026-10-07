@@ -31,6 +31,14 @@ enum Provider: String, CaseIterable, Identifiable {
 
     /// One tone per ring, outer→inner, inside the tool's brand family.
     /// The legend dot next to each limit uses the same entry.
+    var symbol: String {
+        switch self {
+        case .claude: return "asterisk"
+        case .codex: return "terminal"
+        case .cursor: return "cube.fill"
+        }
+    }
+
     var ringColors: [NSColor] {
         func c(_ hex: UInt32) -> NSColor {
             NSColor(srgbRed: CGFloat((hex >> 16) & 0xFF) / 255,
@@ -43,6 +51,8 @@ enum Provider: String, CaseIterable, Identifiable {
         case .cursor: return [c(0xA78BFA), c(0x7DC4FA)]
         }
     }
+    /// Tone of limit i; extra limits reuse the innermost tone.
+    func ringColor(_ i: Int) -> NSColor { i < ringColors.count ? ringColors[i] : ringColors.last ?? color }
 
     /// "Installed" = the tool left credentials on this Mac.
     var isInstalled: Bool {
@@ -117,14 +127,14 @@ enum Provider: String, CaseIterable, Identifiable {
         func pct(_ l: [String: Any]) -> Double { (l["percent"] as? Double) ?? 0 }
         var out: [UsageLimit] = []
         if let l = find("session") {
-            out.append(UsageLimit(label: "5h session", percent: pct(l), resetsAt: DateParse.iso(l["resets_at"])))
+            out.append(UsageLimit(key: "session", label: "5h session", percent: pct(l), resetsAt: DateParse.iso(l["resets_at"])))
         }
         if let l = find("weekly_scoped") {
             let model = ((l["scope"] as? [String: Any])?["model"] as? [String: Any])?["display_name"] as? String ?? "Model"
-            out.append(UsageLimit(label: "\(model) weekly", percent: pct(l), resetsAt: DateParse.iso(l["resets_at"])))
+            out.append(UsageLimit(key: "weekly_scoped", label: "\(model) weekly", percent: pct(l), resetsAt: DateParse.iso(l["resets_at"])))
         }
         if let l = find("weekly_all") {
-            out.append(UsageLimit(label: "Weekly", percent: pct(l), resetsAt: DateParse.iso(l["resets_at"])))
+            out.append(UsageLimit(key: "weekly_all", label: "Weekly", percent: pct(l), resetsAt: DateParse.iso(l["resets_at"])))
         }
         guard !out.isEmpty else { throw ProviderError.unexpected("no known limit kinds") }
         return out
@@ -140,7 +150,7 @@ enum Provider: String, CaseIterable, Identifiable {
             guard let w = rl[key] as? [String: Any] else { continue }
             let secs = (w["limit_window_seconds"] as? Double) ?? 0
             let label = secs >= 6 * 86400 ? "Weekly" : "\(max(1, Int(secs / 3600)))h session"
-            out.append(UsageLimit(label: label, percent: (w["used_percent"] as? Double) ?? 0, resetsAt: DateParse.unix(w["reset_at"])))
+            out.append(UsageLimit(key: key, label: label, percent: (w["used_percent"] as? Double) ?? 0, resetsAt: DateParse.unix(w["reset_at"])))
         }
         guard !out.isEmpty else { throw ProviderError.unexpected("no rate windows") }
         return out
@@ -154,8 +164,8 @@ enum Provider: String, CaseIterable, Identifiable {
         }
         let end = DateParse.iso(root["billingCycleEnd"])
         return [
-            UsageLimit(label: "API models", percent: (plan["apiPercentUsed"] as? Double) ?? 0, resetsAt: end),
-            UsageLimit(label: "Auto", percent: (plan["autoPercentUsed"] as? Double) ?? 0, resetsAt: end),
+            UsageLimit(key: "api", label: "API models", percent: (plan["apiPercentUsed"] as? Double) ?? 0, resetsAt: end),
+            UsageLimit(key: "auto", label: "Auto", percent: (plan["autoPercentUsed"] as? Double) ?? 0, resetsAt: end),
         ]
     }
 }

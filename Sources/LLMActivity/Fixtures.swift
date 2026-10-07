@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 
 enum Fixtures {
     static let claude = #"""
@@ -176,6 +176,19 @@ func runParseCheck() -> Int32 {
             && !Updater.isNewer("0.1.0", than: "0.2.0")
         print("  version  \(versionOK ? "PASS" : "FAIL")")
         pass = pass && versionOK
+
+        // Ramp: brand tone under 60%, pure amber at 85%, pure red from 95%.
+        func near(_ a: NSColor, _ b: NSColor) -> Bool {
+            guard let a = a.usingColorSpace(.sRGB), let b = b.usingColorSpace(.sRGB) else { return false }
+            return abs(a.redComponent - b.redComponent) + abs(a.greenComponent - b.greenComponent)
+                + abs(a.blueComponent - b.blueComponent) < 0.01
+        }
+        let base = Provider.codex.color
+        let warnOK = RingStack.warnColor(base, percent: 59) == base
+            && near(RingStack.warnColor(base, percent: 85), RingStack.amber)
+            && near(RingStack.warnColor(base, percent: 99), RingStack.red)
+        print("  warn     \(warnOK ? "PASS" : "FAIL")")
+        pass = pass && warnOK
     } catch {
         print("  threw: \(error)"); pass = false
     }

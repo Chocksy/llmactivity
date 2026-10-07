@@ -9,16 +9,15 @@ struct WidgetView: View {
     var body: some View {
         HStack(alignment: .top, spacing: 26) {
             ForEach(poller.usages.filter { settings.isEnabled($0.provider) }) { u in
+                let r = settings.rings(u)
                 VStack(spacing: 6) {
-                    RingStack(colors: u.provider.ringColors,
-                              percents: u.limits.isEmpty ? [0.0] : u.limits.map(\.percent),
-                              lineWidth: 11, gap: 3)
+                    RingStack(colors: r.colors, percents: r.percents, lineWidth: 11, gap: 3)
                         .frame(width: 96, height: 96)
                         .opacity(u.isStale ? 0.5 : 1)
                     Text(u.provider.shortName)
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(Color(nsColor: u.provider.color))
-                    Text(u.limits.map { "\(Int($0.percent.rounded()))%" }.joined(separator: " · "))
+                    Text(u.limits.filter { settings.isShown(u.provider, $0) }.map { "\(Int($0.percent.rounded()))%" }.joined(separator: " · "))
                         .font(.system(size: 12)).foregroundStyle(.secondary).monospacedDigit()
                 }
             }
@@ -99,8 +98,9 @@ final class WidgetWindow: NSWindow {
             }
             .store(in: &cancellables)
 
-        // Hiding a provider drops a column, so the card has to shrink too.
-        settings.$disabled
+        // Hiding a provider drops a column (a limit drops a percent), so the card has to refit.
+        settings.$disabled.map { _ in () }
+            .merge(with: settings.$hiddenLimits.map { _ in () })
             .receive(on: DispatchQueue.main)
             .sink { [weak self, weak hosting] _ in
                 guard let self, let hosting else { return }
@@ -111,10 +111,11 @@ final class WidgetWindow: NSWindow {
             .store(in: &cancellables)
 
         settings.$showWidget
+            .combineLatest(settings.$widgetStyle)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] show in
+            .sink { [weak self] show, style in
                 guard let self else { return }
-                if show { self.orderFrontRegardless() } else { self.orderOut(nil) }
+                if show && style == .card { self.orderFrontRegardless() } else { self.orderOut(nil) }
             }
             .store(in: &cancellables)
     }

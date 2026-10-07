@@ -44,9 +44,9 @@ final class StatusBarController: NSObject {
         // Re-render the (max three) 18 pt images only when data or the
         // monochrome setting changes. Nothing runs between polls.
         poller.$usages
-            .combineLatest(settings.$monochrome)
+            .combineLatest(settings.$monochrome, settings.$hiddenLimits)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] usages, mono in self?.render(usages, monochrome: mono) }
+            .sink { [weak self] usages, mono, _ in self?.render(usages, monochrome: mono) }
             .store(in: &cancellables)
 
         // Hiding a provider only flips its item's visibility, so the popover the
@@ -68,11 +68,11 @@ final class StatusBarController: NSObject {
     private func render(_ usages: [ProviderUsage], monochrome: Bool) {
         for u in usages {
             guard let item = items[u.provider], let button = item.button else { continue }
-            let percents = u.limits.isEmpty ? [0.0] : u.limits.map(\.percent)
+            let r = settings.rings(u)
             item.length = 22
             // Monochrome only flips the image to a template, so macOS tints the
             // ring like the system icons instead of keeping the provider color.
-            button.image = RingStack.image(colors: u.provider.ringColors, percents: percents, size: 18, monochrome: monochrome)
+            button.image = RingStack.image(colors: r.colors, percents: r.percents, size: 18, monochrome: monochrome)
             button.imagePosition = .imageOnly
             button.attributedTitle = NSAttributedString(string: "")
             button.appearsDisabled = u.isStale

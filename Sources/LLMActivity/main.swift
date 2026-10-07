@@ -18,6 +18,7 @@ MainActor.assumeIsolated {
     let poller = Poller(providers: Provider.allCases.filter(\.isInstalled), settings: settings)
     let statusBar = StatusBarController(poller: poller, settings: settings)
     let widget = WidgetWindow(poller: poller, settings: settings)
+    let edgeStrip = EdgeStripWindow(poller: poller, settings: settings)
     poller.start(interval: settings.pollInterval)
     Updater.shared.start()
 
@@ -26,7 +27,7 @@ MainActor.assumeIsolated {
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) { statusBar.showPopover() }
     }
 
-    withExtendedLifetime((activity, statusBar, widget)) {
+    withExtendedLifetime((activity, statusBar, widget, edgeStrip)) {
         app.run()
     }
 }

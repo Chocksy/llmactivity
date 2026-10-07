@@ -2,6 +2,9 @@ import Foundation
 
 /// One billing window of one provider. `percent` is 0...100 used.
 struct UsageLimit: Equatable {
+    /// Stable id inside its provider ("session", "weekly_scoped"…), so hiding a
+    /// limit survives a label change like a new model name.
+    let key: String
     let label: String
     let percent: Double
     let resetsAt: Date?

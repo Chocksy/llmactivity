@@ -4,8 +4,8 @@ import SwiftUI
 /// Concentric usage rings, outer ring first. Each ring is a 22%-opacity track
 /// plus a trimmed, round-capped arc. The fill animates via SwiftUI's implicit
 /// animation on `percents` (Core Animation does the work; the app draws nothing
-/// per frame). Each ring gets its own tone from `colors`, and blends toward red
-/// once it passes 80%.
+/// per frame). Each ring gets its own tone from `colors`, and turns amber, then
+/// red, as it nears its limit.
 struct RingStack: View {
     let colors: [NSColor]
     let percents: [Double]
@@ -13,12 +13,15 @@ struct RingStack: View {
     var gap: CGFloat = 3
     var monochrome: Bool = false
 
-    /// Past 80% a ring warms toward red; at 100% it is a 0.75 blend, clearly red.
+    static let amber = NSColor(srgbRed: 1.0, green: 0.70, blue: 0.13, alpha: 1)
+    static let red = NSColor(srgbRed: 1.0, green: 0.27, blue: 0.23, alpha: 1)
+
+    /// Brand tone below 60%, amber by 85%, plain red at 95% and up.
     static func warnColor(_ base: NSColor, percent: Double) -> NSColor {
-        guard percent >= 80 else { return base }
-        let red = NSColor(srgbRed: 1.0, green: 0.27, blue: 0.23, alpha: 1)
-        let t = 0.75 * min((percent - 80) / 20, 1)
-        return base.blended(withFraction: CGFloat(t), of: red) ?? base
+        guard percent >= 60 else { return base }
+        let toAmber = base.blended(withFraction: CGFloat(min((percent - 60) / 25, 1)), of: amber) ?? base
+        guard percent > 85 else { return toAmber }
+        return toAmber.blended(withFraction: CGFloat(min((percent - 85) / 10, 1)), of: red) ?? toAmber
     }
 
     var body: some View {

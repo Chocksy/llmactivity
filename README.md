@@ -10,11 +10,12 @@ Apple-Activity-style usage rings for the AI coding tools on your Mac: Claude Cod
 - **Every billing window is a ring**, not just the 5h session. Claude Code gets three, Codex and Cursor get two.
 - **Clock order.** The fast window sits outside like a clock's second hand, slower budgets sit toward the center. Session on the rim, weekly in the middle.
 - **Brand-family colors per ring.** Claude runs warm orange to cream, Codex green to lime, Cursor violet to blue.
-- **Rings blend toward red past 80%.** At 100% used the ring is clearly red, so a full budget is obvious at a glance.
-- **Reset countdowns** on every row: "resets in 6d", "resets in 4h 24m".
-- **Per-tool checkboxes.** Hide any provider to keep the menu bar tidy; the widget drops that column too.
+- **Rings warn as they fill.** Past 60% a ring warms toward amber, past 85% toward red, and from 95% it is plain red. The percent turns the same color.
+- **Hide single limits.** Click a limit row in the popover, or untick it in Settings, to drop its ring (handy for a model you stopped using).
+- **Reset times** on every row: "Resets in 4h 24m", "Resets Thu 10:32", "Resets Oct 22".
+- **Settings behind the gear.** The popover shows only usage cards (small ring, bars, reset times). Hide any provider to keep the menu bar tidy; the widget drops that column too.
 - **Monochrome mode** swaps the icons for template images, so macOS tints them like the system icons.
-- **Desktop widget**: a translucent card above the wallpaper and under your app windows. Drag it anywhere, the position sticks.
+- **Desktop widget**, two styles: a translucent card above the wallpaper and under your app windows (drag it anywhere), or a black edge strip docked to the right screen edge, above windows. Hover a tool on the strip to see its limits; drag it up or down.
 - **Update check.** On launch and once a day it asks the GitHub releases API for the latest tag. A newer version puts an "Update available" link in the popover that opens the release page. Nothing downloads or installs itself.
 - **Nothing renders per frame.** The menu bar images are redrawn only when the data or the monochrome setting changes.
 
@@ -68,7 +69,7 @@ It runs as a menu bar accessory with no Dock icon.
 
 ## Settings
 
-In the popover: per-tool checkboxes, **Monochrome icons** and **Desktop widget**. Poll interval is a defaults key:
+In the popover's Settings (gear): per-tool and per-limit checkboxes, **Monochrome icons**, **Desktop widget** and its style (Card or Edge strip). Poll interval is a defaults key:
 
 ```sh
 defaults write com.chocksy.llmactivity pollInterval 30   # seconds, floor 15
