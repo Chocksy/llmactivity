@@ -2,7 +2,7 @@
 
 Apple-Activity-style usage rings for the AI coding tools on your Mac: Claude Code, Codex, Cursor. Each tool gets its own menu bar icon, a popover lists every limit with its reset countdown, and an optional desktop widget puts the same rings on your wallpaper. No login: it reads the credentials the tools already store locally.
 
-<img src="docs/screenshots/popover.png" width="420" alt="llmactivity popover: ring stacks for Claude Code, Codex and Cursor, with per-limit percentages and reset times">
+<img src="docs/screenshots/popover.png" width="560" alt="llmactivity popover under the menu bar: usage cards for Claude Code, Codex and Cursor with rings, bars and reset times; the Fable limit is hidden and Cursor's API ring is red at 100%">
 
 ## Features
 
@@ -23,14 +23,20 @@ Apple-Activity-style usage rings for the AI coding tools on your Mac: Claude Cod
 
 | | |
 |---|---|
-| ![Color menu bar icons](docs/screenshots/menubar.png) | **Color** (default): each tool keeps its brand tones, so you can tell them apart without hovering. |
-| ![Monochrome menu bar icons](docs/screenshots/menubar-mono.png) | **Monochrome**: template images that follow the menu bar, white on dark and black on light. |
+| <img src="docs/screenshots/menubar.png" width="320" alt="Color menu bar icons"> | **Color** (default): each tool keeps its brand tones, so you can tell them apart without hovering. |
+| <img src="docs/screenshots/menubar-mono.png" width="320" alt="Monochrome menu bar icons"> | **Monochrome**: template images that follow the menu bar, white on dark and black on light. |
 
 ## Desktop widget
 
-![Desktop widget with three ring stacks](docs/screenshots/widget.png)
+Two styles, picked in Settings.
 
-The same ring stacks, larger, with the tool name and each ring's percent underneath. Toggle it in the popover.
+**Edge strip:** a black strip docked to a screen edge, above your windows. Each tool's logo sits inside its rings with the fullest limit underneath. Hover one and its card slides out.
+
+<img src="docs/screenshots/edge-strip.png" width="560" alt="Black edge strip on the right edge of the screen with Claude, Codex and Cursor rings; a card for Claude Code points at the hovered ring">
+
+**Card:** the same ring stacks, larger, on a translucent card above the wallpaper and under your app windows. Drag it anywhere.
+
+<img src="docs/screenshots/widget.png" width="560" alt="Translucent desktop card with three ring stacks and each ring's percent">
 
 ## Providers
 
@@ -68,6 +74,8 @@ xattr -cr /Applications/LLMActivity.app
 It runs as a menu bar accessory with no Dock icon.
 
 ## Settings
+
+<img src="docs/screenshots/settings.png" width="560" alt="Settings view: per-tool and per-limit checkboxes with Fable weekly unticked, monochrome and widget switches, Card or Edge strip style, Left or Right side">
 
 In the popover's Settings (gear): per-tool and per-limit checkboxes, **Monochrome icons**, **Desktop widget** and its style (Card or Edge strip), and the strip's side (Left or Right). Poll interval is a defaults key:
 
