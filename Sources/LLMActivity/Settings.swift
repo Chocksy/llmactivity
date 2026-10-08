@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import ServiceManagement
 
 enum WidgetStyle: String { case card, edge }
 enum EdgeSide: String { case left, right }
@@ -17,6 +18,19 @@ final class Settings: ObservableObject {
     @Published var disabled: Set<Provider> { didSet { d.set(disabled.map(\.rawValue), forKey: "disabledProviders") } }
 
     /// Single limits the user hid ("claude.weekly_scoped"), e.g. a model they stopped using.
+    /// Backed by the system login items list, so it stays right if the user changes it in System Settings.
+    @Published var launchAtLogin = SMAppService.mainApp.status == .enabled {
+        didSet {
+            guard launchAtLogin != (SMAppService.mainApp.status == .enabled) else { return }
+            do {
+                if launchAtLogin { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+            } catch {
+                NSLog("Launch at login: \(error)")
+                launchAtLogin = SMAppService.mainApp.status == .enabled
+            }
+        }
+    }
+
     @Published var hiddenLimits: Set<String> { didSet { d.set(Array(hiddenLimits), forKey: "hiddenLimits") } }
 
     func isEnabled(_ p: Provider) -> Bool { !disabled.contains(p) }

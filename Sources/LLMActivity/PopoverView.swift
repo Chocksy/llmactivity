@@ -101,6 +101,7 @@ struct PopoverView: View {
 
         sectionHeader("OPTIONS")
         VStack(spacing: 8) {
+            optionRow("Start at login", isOn: $settings.launchAtLogin)
             optionRow("Monochrome icons", isOn: $settings.monochrome)
             optionRow("Desktop widget", isOn: $settings.showWidget)
             if settings.showWidget {
