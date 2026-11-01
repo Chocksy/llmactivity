@@ -25,7 +25,7 @@ struct EdgeStripView: View {
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(.white.opacity(0.9))
                         )
-                    Text(worst(u))
+                    Text(number(u))
                         .font(.system(size: 11, weight: .semibold)).monospacedDigit()
                         .foregroundStyle(.white)
                 }
@@ -48,10 +48,8 @@ struct EdgeStripView: View {
         .fixedSize()
     }
 
-    private func worst(_ u: ProviderUsage) -> String {
-        let shown = u.limits.filter { settings.isShown(u.provider, $0) }
-        guard let m = shown.map(\.percent).max() else { return "–" }
-        return "\(Int(m.rounded()))%"
+    private func number(_ u: ProviderUsage) -> String {
+        settings.stripPercent(u).map { "\(Int($0.rounded()))%" } ?? "–"
     }
 }
 
@@ -162,7 +160,7 @@ final class EdgeStripWindow: NSWindow {
 
         poller.$usages.map { _ in () }
             .merge(with: settings.$disabled.map { _ in () }, settings.$hiddenLimits.map { _ in () },
-                   settings.$edgeSide.map { _ in () })
+                   settings.$stripLimit.map { _ in () }, settings.$edgeSide.map { _ in () })
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.place() }
             .store(in: &cancellables)

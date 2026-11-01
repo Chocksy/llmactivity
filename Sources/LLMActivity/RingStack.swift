@@ -54,11 +54,20 @@ struct RingStack: View {
     /// setting changes. Monochrome → template image, so macOS tints it like the
     /// system icons (white on dark menu bars, black on light).
     @MainActor
-    static func image(colors: [NSColor], percents: [Double], size: CGFloat, monochrome: Bool) -> NSImage {
-        let n = max(percents.count, 1)
-        // ring widths that still read at 18 pt: 3 rings → 3.2 pt, 2 rings → 4.5 pt
-        let lw = (size / 2 - 1) / (CGFloat(n) + 0.35 * CGFloat(n - 1))
+    static func image(colors: [NSColor], percents: [Double], size: CGFloat, monochrome: Bool, symbol: String? = nil) -> NSImage {
+        let n = max(percents.count, 2)
+        // Ring widths at 18 pt: 3 rings → 1.7 pt, 1-2 rings → 2.4 pt. The extra
+        // "+ 1" keeps a hole one ring wide, so the inner ring never fills into a blob.
+        let lw = (size / 2 - 1) / (CGFloat(n) + 0.35 * CGFloat(n - 1) + 1)
         let view = RingStack(colors: colors, percents: percents, lineWidth: lw, gap: lw * 0.35, monochrome: monochrome)
+            .overlay {
+                // A lone ring leaves the center empty: put the tool's glyph there.
+                if percents.count == 1, let symbol {
+                    Image(systemName: symbol)
+                        .font(.system(size: size * 0.36, weight: .bold))
+                        .foregroundStyle(monochrome ? Color.black : Color(nsColor: colors.first ?? .white))
+                }
+            }
             .frame(width: size, height: size)
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2

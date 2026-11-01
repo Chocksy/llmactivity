@@ -32,6 +32,15 @@ final class Settings: ObservableObject {
     }
 
     @Published var hiddenLimits: Set<String> { didSet { d.set(Array(hiddenLimits), forKey: "hiddenLimits") } }
+    /// Provider → limit key whose percent the edge strip shows. Missing = the highest shown limit.
+    @Published var stripLimit: [String: String] { didSet { d.set(stripLimit, forKey: "stripLimit") } }
+
+    /// The number under a tool in the edge strip: the picked limit if still shown, else the highest shown one.
+    func stripPercent(_ u: ProviderUsage) -> Double? {
+        let shown = u.limits.filter { isShown(u.provider, $0) }
+        if let k = stripLimit[u.provider.rawValue], let l = shown.first(where: { $0.key == k }) { return l.percent }
+        return shown.map(\.percent).max()
+    }
 
     func isEnabled(_ p: Provider) -> Bool { !disabled.contains(p) }
     func setEnabled(_ p: Provider, _ on: Bool) {
@@ -65,5 +74,6 @@ final class Settings: ObservableObject {
         edgeSide = d.string(forKey: "edgeSide").flatMap(EdgeSide.init(rawValue:)) ?? .right
         disabled = Set((d.array(forKey: "disabledProviders") as? [String] ?? []).compactMap(Provider.init(rawValue:)))
         hiddenLimits = Set(d.stringArray(forKey: "hiddenLimits") ?? [])
+        stripLimit = d.dictionary(forKey: "stripLimit") as? [String: String] ?? [:]
     }
 }

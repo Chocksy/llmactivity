@@ -90,6 +90,23 @@ struct PopoverView: View {
                         .padding(.leading, 20)
                         .disabled(!on)
                 }
+                if settings.showWidget && settings.widgetStyle == .edge && u.limits.count > 1 {
+                    HStack {
+                        Text("Edge strip number")
+                        Spacer()
+                        Picker("Edge strip number", selection: Binding(
+                            get: { settings.stripLimit[u.provider.rawValue] ?? "" },
+                            set: { settings.stripLimit[u.provider.rawValue] = $0.isEmpty ? nil : $0 })) {
+                            Text("Highest").tag("")
+                            ForEach(u.limits, id: \.key) { l in Text(l.label).tag(l.key) }
+                        }
+                        .labelsHidden()
+                        .controlSize(.small)
+                        .fixedSize()
+                    }
+                    .padding(.leading, 20)
+                    .disabled(!on)
+                }
                 if u.limits.isEmpty {
                     Text(u.error ?? "Loading…").font(.system(size: 12)).foregroundStyle(.secondary)
                         .padding(.leading, 20)

@@ -72,7 +72,8 @@ final class StatusBarController: NSObject {
             item.length = 22
             // Monochrome only flips the image to a template, so macOS tints the
             // ring like the system icons instead of keeping the provider color.
-            button.image = RingStack.image(colors: r.colors, percents: r.percents, size: 18, monochrome: monochrome)
+            button.image = RingStack.image(colors: r.colors, percents: r.percents, size: 18, monochrome: monochrome,
+                                           symbol: u.provider.symbol)
             button.imagePosition = .imageOnly
             button.attributedTitle = NSAttributedString(string: "")
             button.appearsDisabled = u.isStale
