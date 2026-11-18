@@ -37,7 +37,9 @@ final class StatusBarController: NSObject {
             item.button?.target = self
             item.button?.action = #selector(togglePopover(_:))
             item.button?.imagePosition = .imageOnly
-            item.button?.toolTip = usage.provider.name
+            // ponytail: no toolTip. AppKit orphans status-item tooltips (stuck on screen)
+            // when the button re-renders or the popover activates the app mid-tooltip.
+            item.button?.setAccessibilityLabel(usage.provider.name)
             items[usage.provider] = item
         }
 
