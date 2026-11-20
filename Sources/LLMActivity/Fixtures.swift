@@ -109,33 +109,27 @@ enum Fixtures {
      }
     }
     """#
+    // Trimmed live GetCurrentPeriodUsage response, weekly "Super" plan (2026-11-20).
     static let cursor = #"""
     {
-     "billingCycleStart": "2026-08-22T08:37:25.000Z",
-     "billingCycleEnd": "2026-09-22T08:37:25.000Z",
-     "membershipType": "pro_plus",
-     "individualUsage": {
-      "plan": {
-       "enabled": true,
-       "used": 7000,
-       "limit": 7000,
-       "remaining": 0,
-       "breakdown": {
-        "included": 7000,
-        "bonus": 19232,
-        "total": 26232
-       },
-       "autoPercentUsed": 15.326666666666666,
-       "apiPercentUsed": 71.27272727272728,
-       "totalPercentUsed": 20.024427480916028
-      },
-      "onDemand": {
-       "enabled": true,
-       "used": 0,
-       "limit": 5000,
-       "remaining": 5000
-      }
-     }
+     "billingCycleStart": "1794893410091",
+     "billingCycleEnd": "1795498210091",
+     "planUsage": {
+      "remainingBonus": false,
+      "autoPercentUsed": 38.758586546197165,
+      "totalPercentUsed": 38.758586546197165
+     },
+     "spendLimitUsage": {"limitType": "user"},
+     "enabled": true,
+     "displayMessage": "You've used 39% of your included usage"
+    }
+    """#
+    // Older split plans also send apiPercentUsed.
+    static let cursorSplit = #"""
+    {
+     "billingCycleStart": "1794893410091",
+     "billingCycleEnd": "1797139811753",
+     "planUsage": {"autoPercentUsed": 15.3, "apiPercentUsed": 71.2, "totalPercentUsed": 20.0}
     }
     """#
 }
@@ -163,8 +157,11 @@ func runParseCheck() -> Int32 {
             ("Weekly", 38, "2026-09-07T13:08:24Z"),
         ])
         check("cursor", try Provider.parseCursor(Data(Fixtures.cursor.utf8)), [
-            ("API models", 71, "2026-09-22T08:37:25Z"),
-            ("Auto", 15, "2026-09-22T08:37:25Z"),
+            ("Weekly", 39, "2026-11-24T05:30:10Z"),
+        ])
+        check("cursor2", try Provider.parseCursor(Data(Fixtures.cursorSplit.utf8)), [
+            ("API models", 71, "2026-12-13T05:30:11Z"),
+            ("Auto", 15, "2026-12-13T05:30:11Z"),
         ])
         // Garbage must throw, not crash or return empty.
         do { _ = try Provider.parseClaude(Data("{}".utf8)); print("  empty    FAIL (no throw)"); pass = false }

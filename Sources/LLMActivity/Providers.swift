@@ -59,7 +59,7 @@ enum Provider: String, CaseIterable, Identifiable {
         switch self {
         case .claude: return ClaudeAuth.rawJSON() != nil
         case .codex: return FileManager.default.fileExists(atPath: CodexAuth.path)
-        case .cursor: return FileManager.default.fileExists(atPath: CursorAuth.dbPath)
+        case .cursor: return CursorAuth.keychainToken() != nil || FileManager.default.fileExists(atPath: CursorAuth.dbPath)
         }
     }
 
@@ -87,10 +87,15 @@ enum Provider: String, CaseIterable, Identifiable {
             req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             if let account { req.setValue(account, forHTTPHeaderField: "ChatGPT-Account-Id") }
         case .cursor:
-            let jwt = try CursorAuth.accessToken()
-            let uid = try CursorAuth.userID(jwt: jwt)
-            req = URLRequest(url: URL(string: "https://cursor.com/api/usage-summary")!)
-            req.setValue("WorkosCursorSessionToken=\(uid)%3A%3A\(jwt)", forHTTPHeaderField: "Cookie")
+            // cursor.com/api/usage-summary still answers, but with a stale monthly 0% on the
+            // weekly "Super" plans; the dashboard RPC has the live numbers.
+            let token = try CursorAuth.accessToken()
+            req = URLRequest(url: URL(string: "https://api2.cursor.sh/aiserver.v1.DashboardService/GetCurrentPeriodUsage")!)
+            req.httpMethod = "POST"
+            req.httpBody = Data("{}".utf8)
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            req.setValue("1", forHTTPHeaderField: "Connect-Protocol-Version")
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         req.setValue("llmactivity", forHTTPHeaderField: "User-Agent")
         let (data, resp) = try await session.data(for: req)
@@ -157,18 +162,28 @@ enum Provider: String, CaseIterable, Identifiable {
     }
 
     /// Rings outer→inner: API models, Auto. Both reset at billingCycleEnd.
+    /// Weekly "Super" plans have one pool (totalPercentUsed). Older plans split it into
+    /// API models + Auto; show both rings when apiPercentUsed is present.
     static func parseCursor(_ data: Data) throws -> [UsageLimit] {
         let root = try json(data)
-        guard let plan = (root["individualUsage"] as? [String: Any])?["plan"] as? [String: Any] else {
-            throw ProviderError.unexpected("no individualUsage.plan")
+        guard let plan = root["planUsage"] as? [String: Any] else {
+            throw ProviderError.unexpected("no planUsage")
         }
-        let end = DateParse.iso(root["billingCycleEnd"])
-        return [
-            UsageLimit(key: "api", label: "API models", percent: (plan["apiPercentUsed"] as? Double) ?? 0, resetsAt: end),
-            UsageLimit(key: "auto", label: "Auto", percent: (plan["autoPercentUsed"] as? Double) ?? 0, resetsAt: end),
-        ]
+        func ms(_ any: Any?) -> Double? { (any as? String).flatMap(Double.init) ?? (any as? Double) }
+        let start = ms(root["billingCycleStart"]), endMs = ms(root["billingCycleEnd"])
+        let end = endMs.map { Date(timeIntervalSince1970: $0 / 1000) }
+        if let api = plan["apiPercentUsed"] as? Double {
+            return [
+                UsageLimit(key: "api", label: "API models", percent: api, resetsAt: end),
+                UsageLimit(key: "auto", label: "Auto", percent: (plan["autoPercentUsed"] as? Double) ?? 0, resetsAt: end),
+            ]
+        }
+        guard let total = plan["totalPercentUsed"] as? Double else { throw ProviderError.unexpected("no totalPercentUsed") }
+        let days = (start.flatMap { s in endMs.map { ($0 - s) / 86_400_000 } }) ?? 0
+        return [UsageLimit(key: "total", label: days > 0 && days < 8 ? "Weekly" : "Monthly", percent: total, resetsAt: end)]
     }
 }
+
 
 // MARK: - Credential readers
 
@@ -222,12 +237,29 @@ enum CursorAuth {
         NSHomeDirectory() + "/Library/Application Support/Cursor/User/globalStorage/state.vscdb"
     }
 
-    /// Reads cursorAuth/accessToken from the IDE's state DB in place. First a
-    /// normal read-only open (sees WAL content, i.e. the freshest token); if
-    /// the IDE's locks get in the way, retry with immutable=1 (main file only).
+    /// The cursor-agent CLI keeps a JWT in the Keychain; the IDE's state DB now holds an
+    /// opaque `cursor-…` token the API rejects (seen after the ChatGPT-login switch).
+    /// Prefer the Keychain JWT, fall back to the DB for IDE-only installs.
     static func accessToken() throws -> String {
+        if let t = keychainToken() { return t }
         if let t = try? query(immutable: false) { return t }
         return try query(immutable: true)
+    }
+
+    /// Via /usr/bin/security for the same reason as ClaudeAuth.
+    static func keychainToken() -> String? {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/security")
+        p.arguments = ["find-generic-password", "-s", "cursor-access-token", "-w"]
+        let out = Pipe()
+        p.standardOutput = out
+        p.standardError = Pipe()
+        guard (try? p.run()) != nil else { return nil }
+        p.waitUntilExit()
+        guard p.terminationStatus == 0 else { return nil }
+        let t = String(decoding: out.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.isEmpty ? nil : t
     }
 
     private static func query(immutable: Bool) throws -> String {
@@ -251,20 +283,6 @@ enum CursorAuth {
         let token = String(cString: c)
         guard !token.isEmpty else { throw ProviderError.auth("Not logged in to Cursor") }
         return token
-    }
-
-    /// The cookie needs `<userId>::<jwt>`; userId is the JWT `sub` after "auth0|".
-    static func userID(jwt: String) throws -> String {
-        let parts = jwt.split(separator: ".")
-        guard parts.count >= 2 else { throw ProviderError.auth("Cursor token is not a JWT") }
-        var b64 = String(parts[1]).replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
-        while b64.count % 4 != 0 { b64 += "=" }
-        guard let data = Data(base64Encoded: b64),
-              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let sub = obj["sub"] as? String else {
-            throw ProviderError.auth("Cursor token has no sub")
-        }
-        return sub.split(separator: "|").last.map(String.init) ?? sub
     }
 }
 

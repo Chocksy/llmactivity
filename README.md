@@ -7,7 +7,7 @@ Apple-Activity-style usage rings for the AI coding tools on your Mac: Claude Cod
 ## Features
 
 - **One ring stack per installed tool.** A tool with no local login shows nothing at all.
-- **Every billing window is a ring**, not just the 5h session. Claude Code gets three, Codex and Cursor get two.
+- **Every billing window is a ring**, not just the 5h session. Claude Code gets three, Codex two, Cursor one or two depending on the plan.
 - **Clock order.** The fast window sits outside like a clock's second hand, slower budgets sit toward the center. Session on the rim, weekly in the middle.
 - **Brand-family colors per ring.** Claude runs warm orange to cream, Codex green to lime, Cursor violet to blue.
 - **Rings warn as they fill.** Past 60% a ring warms toward amber, past 85% toward red, and from 95% it is plain red. The percent turns the same color.
@@ -44,11 +44,11 @@ Two styles, picked in Settings.
 |---|---|---|---|
 | Claude Code | 5h session · model weekly (e.g. Fable) · Weekly | `#E8845C` `#ECC06F` `#F7E2C0` | Keychain item `Claude Code-credentials` |
 | Codex | 5h session · Weekly | `#34D399` `#B8E986` | `~/.codex/auth.json` |
-| Cursor | API models · Auto (monthly cycle) | `#A78BFA` `#7DC4FA` | Cursor IDE token in `state.vscdb` |
+| Cursor | Weekly (Super plans) or API models · Auto (older plans) | `#A78BFA` `#7DC4FA` | Keychain item `cursor-access-token` (cursor-agent), else IDE token in `state.vscdb` |
 
 ## How it gets the data
 
-It reads the credentials each tool already wrote to this Mac, then calls that vendor's own usage endpoint: `api.anthropic.com/api/oauth/usage`, `chatgpt.com/backend-api/wham/usage`, `cursor.com/api/usage-summary`. Nothing goes anywhere else. There is no account, no server, no telemetry.
+It reads the credentials each tool already wrote to this Mac, then calls that vendor's own usage endpoint: `api.anthropic.com/api/oauth/usage`, `chatgpt.com/backend-api/wham/usage`, `api2.cursor.sh` (`DashboardService/GetCurrentPeriodUsage`). Nothing goes anywhere else. There is no account, no server, no telemetry.
 
 Claude is polled at most once every 5 minutes, because Anthropic rate-limits that usage endpoint hard. Codex and Cursor are polled every 60 seconds. On an HTTP 429 the app honors `Retry-After` and keeps showing the last good numbers.
 
